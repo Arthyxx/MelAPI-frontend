@@ -52,8 +52,8 @@ export function MeusPedidos() {
         setLoading(true);
 
         const response = await api.get('/pedidos/meus-pedidos');
-
         const data = Array.isArray(response.data) ? response.data : [];
+
         setPedidos(data);
       } catch (err) {
         console.error('Erro ao carregar meus pedidos:', err);
@@ -74,7 +74,9 @@ export function MeusPedidos() {
   };
 
   const formatDate = (date?: string | null) => {
-    if (!date) return 'Data não informada';
+    if (!date) {
+      return 'Data não informada';
+    }
 
     const parsedDate = new Date(date);
 
@@ -87,9 +89,10 @@ export function MeusPedidos() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 dark:from-gray-950 dark:via-gray-900 dark:to-amber-950">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 dark:from-gray-950 dark:via-gray-900 dark:to-amber-950">
         <div className="text-center">
-          <div className="text-7xl animate-bounce-soft mb-4">🍯</div>
+          <div className="mb-4 text-7xl animate-bounce-soft">🍯</div>
+
           <p className="text-xl font-semibold text-amber-700 dark:text-amber-300">
             Carregando seus pedidos...
           </p>
@@ -112,6 +115,7 @@ export function MeusPedidos() {
                 <h1 className="text-2xl font-extrabold tracking-tight">
                   Meus Pedidos
                 </h1>
+
                 <p className="text-sm text-amber-100">
                   Acompanhe suas compras no Apiário Vitória Seven
                 </p>
@@ -210,14 +214,23 @@ export function MeusPedidos() {
                       </p>
                     </div>
 
-                    <div className="text-left md:text-right">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Total do pedido
-                      </p>
+                    <div className="flex flex-col gap-3 text-left md:items-end md:text-right">
+                      <div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Total do pedido
+                        </p>
 
-                      <p className="text-2xl font-black text-amber-700 dark:text-amber-300">
-                        {formatCurrency(pedido.totalPrice)}
-                      </p>
+                        <p className="text-2xl font-black text-amber-700 dark:text-amber-300">
+                          {formatCurrency(pedido.totalPrice)}
+                        </p>
+                      </div>
+
+                      <Link
+                        to={`/meus-pedidos/${pedido.id}`}
+                        className="inline-flex w-fit items-center justify-center rounded-full bg-amber-600 px-4 py-2 text-sm font-bold text-white shadow-md transition hover:bg-amber-700 hover:shadow-lg"
+                      >
+                        Ver detalhes
+                      </Link>
                     </div>
                   </div>
 

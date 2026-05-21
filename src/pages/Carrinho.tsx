@@ -96,10 +96,20 @@ export function Carrinho() {
       setSuccess('Pedido criado com sucesso!');
 
       setTimeout(() => {
-        navigate('/produtos');
-      }, 1500);
-    } catch {
-      setError('Erro ao finalizar pedido. Verifique o estoque dos produtos e tente novamente.');
+        navigate('/meus-pedidos');
+      }, 1200);
+    } catch (err: any) {
+      console.error('Erro ao finalizar pedido:', {
+        statusCode: err.response?.status,
+        data: err.response?.data,
+        message: err.message,
+      });
+
+      setError(
+        err.response?.data?.message ||
+          err.response?.data?.error ||
+          'Erro ao finalizar pedido. Verifique o estoque dos produtos e tente novamente.'
+      );
     } finally {
       setLoading(false);
     }
@@ -125,13 +135,23 @@ export function Carrinho() {
               </div>
             </div>
 
-            <Link
-              to="/produtos"
-              className="inline-flex w-fit items-center gap-2 rounded-full bg-white/15 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/25"
-            >
-              <span>←</span>
-              Continuar comprando
-            </Link>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                to="/meus-pedidos"
+                className="inline-flex w-fit items-center gap-2 rounded-full bg-white/15 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/25"
+              >
+                <span>📦</span>
+                Meus pedidos
+              </Link>
+
+              <Link
+                to="/produtos"
+                className="inline-flex w-fit items-center gap-2 rounded-full bg-white/15 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/25"
+              >
+                <span>←</span>
+                Continuar comprando
+              </Link>
+            </div>
           </div>
         </div>
       </header>
@@ -191,6 +211,7 @@ export function Carrinho() {
                 </div>
 
                 <button
+                  type="button"
                   onClick={handleClearCart}
                   className="w-fit rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
                 >
@@ -258,6 +279,7 @@ export function Carrinho() {
 
                             <div className="flex overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-sm dark:border-amber-800 dark:bg-gray-950">
                               <button
+                                type="button"
                                 onClick={() => updateQuantity(item.id, item.quantity - 1)}
                                 className="px-4 py-2 font-bold text-amber-800 transition hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-gray-800"
                               >
@@ -274,6 +296,7 @@ export function Carrinho() {
                               />
 
                               <button
+                                type="button"
                                 onClick={() => updateQuantity(item.id, item.quantity + 1)}
                                 className="px-4 py-2 font-bold text-amber-800 transition hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-gray-800"
                               >
@@ -294,6 +317,7 @@ export function Carrinho() {
                             </div>
 
                             <button
+                              type="button"
                               onClick={() => handleRemove(item.id)}
                               className="rounded-full bg-red-50 px-4 py-2 text-sm font-bold text-red-600 transition hover:bg-red-100 dark:bg-red-950/40 dark:text-red-300"
                             >
@@ -347,7 +371,7 @@ export function Carrinho() {
                     </div>
                   </div>
 
-                  <div className="my-6 border-t border-amber-100 dark:border-amber-900"></div>
+                  <div className="my-6 border-t border-amber-100 dark:border-amber-900" />
 
                   <div className="flex items-end justify-between">
                     <div>
