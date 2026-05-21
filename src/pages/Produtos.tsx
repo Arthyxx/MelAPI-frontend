@@ -119,6 +119,14 @@ export function Produtos() {
             )}
 
             <Link
+              to="/meus-pedidos"
+              className="bg-amber-700 hover:bg-amber-800 px-3 py-1 rounded-full text-sm transition flex items-center gap-1"
+              >
+              <span>📦</span>
+              Meus pedidos
+            </Link>
+
+            <Link
               to="/carrinho"
               className="relative bg-amber-700 hover:bg-amber-800 px-3 py-1 rounded-full text-sm transition flex items-center gap-1"
             >
