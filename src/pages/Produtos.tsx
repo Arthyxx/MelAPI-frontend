@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api, setAuthToken } from '../services/api';
 import { Link, useNavigate } from 'react-router-dom';
 import { getUserRole } from '../utils/decodeToken';
+import { addToCart, getCartItemsCount } from '../utils/cart';
 
 interface Produto {
   id: number;
@@ -16,6 +17,7 @@ export function Produtos() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
+  const [cartItemsCount, setCartItemsCount] = useState(getCartItemsCount());
 
   const navigate = useNavigate();
   const role = getUserRole();
@@ -41,12 +43,32 @@ export function Produtos() {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('role');
     setAuthToken(null);
     navigate('/login');
   };
 
   const handleAddToCart = (produto: Produto) => {
-    alert(`🍯 ${produto.name} adicionado ao carrinho!`);
+    try {
+      const updatedCart = addToCart({
+        id: produto.id,
+        name: produto.name,
+        price: produto.price,
+        stockQuantity: produto.stockQuantity,
+        imageUrl: produto.imageUrl,
+      });
+
+      const totalItems = updatedCart.reduce((total, item) => total + item.quantity, 0);
+      setCartItemsCount(totalItems);
+
+      alert(`🍯 ${produto.name} adicionado ao carrinho!`);
+    } catch (error) {
+      if (error instanceof Error) {
+        alert(error.message);
+      } else {
+        alert('Erro ao adicionar produto ao carrinho.');
+      }
+    }
   };
 
   if (carregando) {
@@ -96,6 +118,20 @@ export function Produtos() {
               </Link>
             )}
 
+            <Link
+              to="/carrinho"
+              className="relative bg-amber-700 hover:bg-amber-800 px-3 py-1 rounded-full text-sm transition flex items-center gap-1"
+            >
+              <span>🛒</span>
+              Carrinho
+
+              {cartItemsCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full min-w-5 h-5 flex items-center justify-center px-1">
+                  {cartItemsCount}
+                </span>
+              )}
+            </Link>
+
             <button
               onClick={handleLogout}
               className="bg-amber-900/70 hover:bg-amber-900 text-white font-medium py-2 px-5 rounded-full transition flex items-center gap-2 backdrop-blur-sm border border-amber-600 hover:scale-105"
@@ -107,7 +143,7 @@ export function Produtos() {
       </header>
 
       <section className="relative overflow-hidden bg-gradient-to-r from-amber-700 via-yellow-600 to-amber-700 animate-gradient-shift py-20 md:py-28">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy5wMy5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MCIgaGVpZ2h0PSI4MCIgdmlld0JveD0iMCAwIDQwIDQwIj48cGF0aCBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAuMDYiIGQ9Ik0yMCA1IEw1IDE1IEw1IDI1IEwyMCAzNSBMMzUgMjUgTDM1IDE1IFoiLz48L3N2Zz4=')] bg-repeat opacity-20"></div>
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MCIgaGVpZ2h0PSI4MCIgdmlld0JveD0iMCAwIDQwIDQwIj48cGF0aCBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAuMDYiIGQ9Ik0yMCA1IEw1IDE1IEw1IDI1IEwyMCAzNSBMMzUgMjUgTDM1IDE1IFoiLz48L3N2Zz4=')] bg-repeat opacity-20"></div>
 
         <div className="container mx-auto px-4 text-center relative z-10">
           <div className="inline-block animate-bounce-soft text-7xl mb-4 drop-shadow-lg">
@@ -154,9 +190,15 @@ export function Produtos() {
                     <span className="text-7xl drop-shadow-md">🍯</span>
                   </div>
 
-                  {produto.stockQuantity < 10 && (
+                  {produto.stockQuantity < 10 && produto.stockQuantity > 0 && (
                     <span className="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
                       Últimas unidades
+                    </span>
+                  )}
+
+                  {produto.stockQuantity <= 0 && (
+                    <span className="absolute top-3 right-3 bg-gray-700 text-white text-xs font-bold px-2 py-1 rounded-full">
+                      Sem estoque
                     </span>
                   )}
                 </div>
@@ -189,9 +231,11 @@ export function Produtos() {
 
                   <button
                     onClick={() => handleAddToCart(produto)}
-                    className="mt-5 w-full bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 text-white font-semibold py-2.5 rounded-xl transition transform active:scale-95 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                    disabled={produto.stockQuantity <= 0}
+                    className="mt-5 w-full bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-xl transition transform active:scale-95 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
                   >
-                    <span>🛒</span> Adicionar
+                    <span>🛒</span>
+                    {produto.stockQuantity <= 0 ? 'Indisponível' : 'Adicionar'}
                   </button>
                 </div>
               </div>

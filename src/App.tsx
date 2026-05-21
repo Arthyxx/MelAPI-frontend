@@ -11,6 +11,7 @@ import { CategoriasAdmin } from './pages/admin/CategoriasAdmin';
 import { ClientesAdmin } from './pages/admin/ClientesAdmin';
 import { PedidosAdmin } from './pages/admin/PedidosAdmin';
 import { Cadastro } from './pages/Cadastro';
+import { Carrinho } from './pages/Carrinho';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -73,6 +74,11 @@ function App() {
           <Route
             path="/produtos"
             element={isAuthenticated ? <Produtos /> : <Navigate to="/login" />}
+          />
+
+          <Route
+            path="/carrinho"
+            element={isAuthenticated ? <Carrinho /> : <Navigate to="/login" />}
           />
 
           <Route path="/" element={<Navigate to="/produtos" />} />
