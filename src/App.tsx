@@ -10,6 +10,7 @@ import { ProdutosAdmin } from './pages/admin/ProdutosAdmin';
 import { CategoriasAdmin } from './pages/admin/CategoriasAdmin';
 import { ClientesAdmin } from './pages/admin/ClientesAdmin';
 import { PedidosAdmin } from './pages/admin/PedidosAdmin';
+import { Cadastro } from './pages/Cadastro';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -67,6 +68,7 @@ function App() {
       <div className="min-h-screen flex flex-col bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 dark:from-gray-900 dark:via-gray-800 dark:to-amber-950">
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/cadastro" element={<Cadastro />} />
 
           <Route
             path="/produtos"
