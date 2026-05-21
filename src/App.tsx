@@ -4,17 +4,24 @@ import { Produtos } from './pages/Produtos';
 import { setAuthToken } from './services/api';
 import { useEffect, useState } from 'react';
 import { AdminRoute } from './components/AdminRoute';
-import { AdminDashboard } from './pages/AdminDashboard';
+import { AdminLayout } from './components/AdminLayout';
+
+import { ProdutosAdmin } from './pages/admin/ProdutosAdmin';
+import { CategoriasAdmin } from './pages/admin/CategoriasAdmin';
+import { ClientesAdmin } from './pages/admin/ClientesAdmin';
+import { PedidosAdmin } from './pages/admin/PedidosAdmin';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Função para atualizar o estado baseado no token
   const updateAuthState = () => {
     const token = localStorage.getItem('token');
     setIsAuthenticated(!!token);
-    if (token) setAuthToken(token);
+
+    if (token) {
+      setAuthToken(token);
+    }
   };
 
   useEffect(() => {
@@ -22,19 +29,20 @@ function App() {
     setLoading(false);
   }, []);
 
-  // Observa mudanças no localStorage (outras abas ou chamadas manuais)
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'token') {
         updateAuthState();
       }
     };
+
     window.addEventListener('storage', handleStorageChange);
 
-    // Intercepta chamadas diretas a localStorage.setItem
     const originalSetItem = localStorage.setItem;
+
     localStorage.setItem = function (key: string, value: string) {
       originalSetItem.call(this, key, value);
+
       if (key === 'token') {
         updateAuthState();
       }
@@ -59,13 +67,59 @@ function App() {
       <div className="min-h-screen flex flex-col bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 dark:from-gray-900 dark:via-gray-800 dark:to-amber-950">
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/produtos" element={isAuthenticated ? <Produtos /> : <Navigate to="/login" />} />
+
+          <Route
+            path="/produtos"
+            element={isAuthenticated ? <Produtos /> : <Navigate to="/login" />}
+          />
+
           <Route path="/" element={<Navigate to="/produtos" />} />
-          <Route path="/admin" element={
-            <AdminRoute>
-              <AdminDashboard />
-            </AdminRoute>
-          } />
+
+          <Route path="/admin" element={<Navigate to="/admin/produtos" />} />
+
+          <Route
+            path="/admin/produtos"
+            element={
+              <AdminRoute>
+                <AdminLayout title="Produtos">
+                  <ProdutosAdmin />
+                </AdminLayout>
+              </AdminRoute>
+            }
+          />
+
+          <Route
+            path="/admin/categorias"
+            element={
+              <AdminRoute>
+                <AdminLayout title="Categorias">
+                  <CategoriasAdmin />
+                </AdminLayout>
+              </AdminRoute>
+            }
+          />
+
+          <Route
+            path="/admin/clientes"
+            element={
+              <AdminRoute>
+                <AdminLayout title="Clientes">
+                  <ClientesAdmin />
+                </AdminLayout>
+              </AdminRoute>
+            }
+          />
+
+          <Route
+            path="/admin/pedidos"
+            element={
+              <AdminRoute>
+                <AdminLayout title="Pedidos">
+                  <PedidosAdmin />
+                </AdminLayout>
+              </AdminRoute>
+            }
+          />
         </Routes>
       </div>
     </BrowserRouter>
