@@ -1,225 +1,273 @@
 import { useState, type FormEvent } from 'react';
-import { motion, type Variants } from 'framer-motion';
-import { login, setAuthToken } from '../services/api';
 import { Link, useNavigate } from 'react-router-dom';
+import { login, setAuthToken } from '../services/api';
 import { decodeToken } from '../utils/decodeToken';
-
-// Constantes de animação fora do componente (evita recriação)
-const cardVariants: Variants = {
-  hidden: { opacity: 0, y: 30 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.6, ease: 'easeOut' },
-  },
-};
-
-const iconVariants: Variants = {
-  hidden: { scale: 0.8, rotate: -10 },
-  visible: {
-    scale: 1,
-    rotate: 0,
-    transition: { duration: 0.5, type: 'spring', stiffness: 200 },
-  },
-};
-
-const inputVariants: Variants = {
-  focus: { scale: 1.02, transition: { duration: 0.2 } },
-  blur: { scale: 1 },
-};
-
-const errorVariants: Variants = {
-  hidden: { opacity: 0, x: -20 },
-  visible: { opacity: 1, x: 0 },
-};
 
 export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [erro, setErro] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    setErro('');
-    setIsLoading(true);
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
 
     try {
+      setErro('');
+      setLoading(true);
+
       const { token } = await login(email, password);
 
       localStorage.setItem('token', token);
       setAuthToken(token);
 
       const decoded = decodeToken(token);
+      const role = decoded?.role || 'CLIENTE';
 
-      if (decoded?.role === 'ADMIN') {
-        localStorage.setItem('role', 'ADMIN');
-      } else {
-        localStorage.setItem('role', 'CLIENTE');
+      localStorage.setItem('role', role);
+
+      if (role === 'ADMIN') {
+        navigate('/admin');
+        return;
       }
 
       navigate('/produtos');
-    } catch {
-      setErro('Email ou senha inválidos');
+    } catch (err: any) {
+      console.error('Erro ao fazer login:', {
+        statusCode: err.response?.status,
+        data: err.response?.data,
+        message: err.message,
+      });
+
+      setErro(
+        err.response?.data?.message ||
+          err.response?.data?.error ||
+          'E-mail ou senha inválidos.'
+      );
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
+  const inputClass =
+    'w-full rounded-2xl border border-amber-200 bg-white/90 px-4 py-3 text-gray-900 shadow-sm outline-none transition duration-300 placeholder:text-gray-400 focus:border-amber-500 focus:ring-4 focus:ring-amber-200 dark:border-amber-800 dark:bg-gray-950/80 dark:text-white dark:focus:ring-amber-900';
+
+  const labelClass =
+    'mb-2 block text-sm font-bold text-amber-900 dark:text-amber-300';
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-amber-100 via-orange-50 to-yellow-100 dark:from-gray-900 dark:via-amber-950 dark:to-gray-800">
-      {/* Elementos decorativos flutuantes */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-20 -left-20 w-64 h-64 bg-yellow-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
-        <div className="absolute top-1/3 -right-20 w-72 h-72 bg-amber-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse delay-1000"></div>
-        <div className="absolute bottom-0 left-1/3 w-56 h-56 bg-orange-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse delay-2000"></div>
-      </div>
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 px-4 py-10 dark:from-gray-950 dark:via-gray-900 dark:to-amber-950">
+      <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-amber-300/30 blur-3xl animate-pulse-gentle" />
+      <div className="absolute -right-24 bottom-10 h-80 w-80 rounded-full bg-yellow-400/30 blur-3xl animate-pulse-gentle" />
+      <div className="absolute left-1/2 top-1/3 h-48 w-48 rounded-full bg-orange-300/20 blur-3xl animate-spin-slow" />
 
-      <motion.div
-        initial="hidden"
-        animate="visible"
-        variants={cardVariants}
-        className="relative z-10 w-full max-w-md"
-      >
-        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-amber-300 dark:border-amber-700 transition-all duration-300 hover:shadow-3xl">
-          {/* Cabeçalho com ícone animado */}
-          <div className="text-center mb-8">
-            <motion.div
-              variants={iconVariants}
-              initial="hidden"
-              animate="visible"
-              className="inline-block"
-            >
-              <div className="text-6xl mb-3 filter drop-shadow-lg">🐝</div>
-            </motion.div>
+      <main className="relative z-10 mx-auto grid min-h-[calc(100vh-5rem)] max-w-6xl items-center gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+        <section className="hidden animate-fade-in-up lg:block">
+          <div className="rounded-[2rem] border border-amber-200 bg-white/60 p-8 shadow-2xl backdrop-blur-xl dark:border-amber-900 dark:bg-gray-900/60">
+            <div className="mb-8 inline-flex rounded-full bg-amber-100 px-4 py-2 text-sm font-bold text-amber-800">
+              🍯 Apiário Vitória Seven
+            </div>
 
-            <h1 className="text-3xl font-extrabold text-amber-800 dark:text-amber-400 tracking-tight">
-              Apiário Vitória Seven
+            <h1 className="text-5xl font-black leading-tight text-amber-950 dark:text-amber-300">
+              Entre na sua conta e acompanhe seus pedidos.
             </h1>
 
-            <p className="text-amber-600 dark:text-amber-500 mt-2 text-sm font-medium">
-              Entre no mundo do mel puro
+            <p className="mt-5 text-lg text-gray-600 dark:text-gray-300">
+              Acesse sua conta para comprar produtos naturais, acompanhar pedidos e visualizar detalhes das suas compras.
             </p>
+
+            <div className="mt-8 grid gap-4">
+              <div className="rounded-3xl border border-amber-100 bg-white/80 p-5 shadow-md transition hover:-translate-y-1 hover:shadow-xl dark:border-amber-900 dark:bg-gray-950/70">
+                <div className="text-3xl">📦</div>
+
+                <h3 className="mt-3 font-extrabold text-amber-900 dark:text-amber-300">
+                  Histórico de pedidos
+                </h3>
+
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  Consulte status, produtos comprados e detalhes de cada pedido.
+                </p>
+              </div>
+
+              <div className="rounded-3xl border border-amber-100 bg-white/80 p-5 shadow-md transition hover:-translate-y-1 hover:shadow-xl dark:border-amber-900 dark:bg-gray-950/70">
+                <div className="text-3xl">🛒</div>
+
+                <h3 className="mt-3 font-extrabold text-amber-900 dark:text-amber-300">
+                  Compra simples
+                </h3>
+
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  Adicione produtos ao carrinho e finalize pedidos sem sofrimento, uma raridade neste mundo.
+                </p>
+              </div>
+
+              <div className="rounded-3xl border border-amber-100 bg-white/80 p-5 shadow-md transition hover:-translate-y-1 hover:shadow-xl dark:border-amber-900 dark:bg-gray-950/70">
+                <div className="text-3xl">🐝</div>
+
+                <h3 className="mt-3 font-extrabold text-amber-900 dark:text-amber-300">
+                  Produtos naturais
+                </h3>
+
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  Mel, própolis e produtos artesanais em uma loja com cara de sistema de verdade.
+                </p>
+              </div>
+            </div>
           </div>
+        </section>
 
-          <h2 className="text-2xl font-semibold text-amber-800 dark:text-amber-400 mb-6 text-center">
-            Acesse sua conta
-          </h2>
+        <section className="animate-fade-in-up">
+          <div className="overflow-hidden rounded-[2rem] border border-amber-200 bg-white/85 shadow-2xl backdrop-blur-xl dark:border-amber-800 dark:bg-gray-900/90">
+            <div className="bg-gradient-to-r from-amber-700 via-yellow-600 to-amber-700 px-6 py-8 text-white sm:px-10">
+              <div className="flex items-center gap-4">
+                <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-white/15 text-4xl shadow-inner animate-bounce-soft">
+                  🐝
+                </div>
 
-          {erro && (
-            <motion.div
-              variants={errorVariants}
-              initial="hidden"
-              animate="visible"
-              className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6 text-sm"
-            >
-              {erro}
-            </motion.div>
-          )}
+                <div>
+                  <p className="text-sm font-bold uppercase tracking-wider text-amber-100">
+                    Bem-vindo de volta
+                  </p>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <motion.div variants={inputVariants} whileFocus="focus">
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-amber-800 dark:text-amber-300 mb-1"
-              >
-                Email
-              </label>
+                  <h2 className="text-3xl font-black">
+                    Acesse sua conta
+                  </h2>
+                </div>
+              </div>
 
-              <input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-amber-200 dark:border-amber-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 transition"
-                required
-              />
-            </motion.div>
-
-            <motion.div variants={inputVariants} whileFocus="focus">
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-amber-800 dark:text-amber-300 mb-1"
-              >
-                Senha
-              </label>
-
-              <input
-                id="password"
-                type="password"
-                placeholder="Digite sua senha"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-amber-200 dark:border-amber-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 transition"
-                required
-              />
-            </motion.div>
-
-            <motion.button
-              type="submit"
-              disabled={isLoading}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {isLoading ? (
-                <>
-                  <svg
-                    className="animate-spin h-5 w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Entrando...
-                </>
-              ) : (
-                'Entrar'
-              )}
-            </motion.button>
-
-            <div className="text-center">
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Ainda não tem conta?{' '}
-                <Link
-                  to="/cadastro"
-                  className="font-semibold text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-300 transition"
-                >
-                  Criar conta
-                </Link>
+              <p className="mt-4 max-w-2xl text-sm text-amber-50">
+                Faça login para continuar comprando, acompanhar pedidos e gerenciar sua experiência na loja.
               </p>
             </div>
-          </form>
 
-          <div className="mt-6 text-center text-xs text-amber-500 dark:text-amber-400">
-            <span>🍯 Produtos frescos do apiário para você</span>
+            <div className="p-6 sm:p-10">
+              {erro && (
+                <div className="mb-6 animate-fade-in rounded-2xl border border-red-300 bg-red-50 px-5 py-4 text-sm font-medium text-red-700 shadow-sm dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+                  {erro}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="animate-fade-in-up delay-100">
+                  <label htmlFor="email" className={labelClass}>
+                    E-mail
+                  </label>
+
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg">
+                      ✉️
+                    </span>
+
+                    <input
+                      id="email"
+                      type="email"
+                      placeholder="seuemail@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className={`${inputClass} pl-12`}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="animate-fade-in-up delay-200">
+                  <label htmlFor="password" className={labelClass}>
+                    Senha
+                  </label>
+
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg">
+                      🔒
+                    </span>
+
+                    <input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Digite sua senha"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className={`${inputClass} px-12`}
+                      required
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-amber-700 transition hover:text-amber-900 dark:text-amber-300"
+                    >
+                      {showPassword ? 'Ocultar' : 'Ver'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="animate-fade-in-up delay-300 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Use seus dados cadastrados para entrar.
+                  </p>
+
+                  <Link
+                    to="/cadastro"
+                    className="text-sm font-bold text-amber-700 transition hover:text-amber-900 dark:text-amber-300"
+                  >
+                    Criar conta
+                  </Link>
+                </div>
+
+                <div className="animate-fade-in-up delay-400 space-y-4">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="group relative w-full overflow-hidden rounded-2xl bg-gradient-to-r from-amber-600 via-yellow-600 to-amber-700 px-6 py-4 font-black text-white shadow-xl transition duration-300 hover:-translate-y-1 hover:shadow-2xl disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    <span className="absolute inset-0 translate-x-[-100%] bg-white/20 transition duration-700 group-hover:translate-x-[100%]" />
+
+                    <span className="relative flex items-center justify-center gap-2">
+                      {loading ? (
+                        <>
+                          <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                          Entrando...
+                        </>
+                      ) : (
+                        <>
+                          Entrar na loja
+                          <span className="transition group-hover:translate-x-1">→</span>
+                        </>
+                      )}
+                    </span>
+                  </button>
+
+                  <Link
+                    to="/produtos"
+                    className="block rounded-2xl border border-amber-200 px-4 py-3 text-center text-sm font-bold text-amber-800 transition hover:bg-amber-50 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-gray-800"
+                  >
+                    Ver produtos depois do login
+                  </Link>
+                </div>
+              </form>
+
+              <div className="mt-8 grid grid-cols-3 gap-2 text-center text-xs text-gray-500 dark:text-gray-400">
+                <div className="rounded-2xl bg-gray-50 p-3 dark:bg-gray-800">
+                  <div className="text-lg">🍯</div>
+                  Mel puro
+                </div>
+
+                <div className="rounded-2xl bg-gray-50 p-3 dark:bg-gray-800">
+                  <div className="text-lg">📦</div>
+                  Pedidos
+                </div>
+
+                <div className="rounded-2xl bg-gray-50 p-3 dark:bg-gray-800">
+                  <div className="text-lg">🛒</div>
+                  Carrinho
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-
-        {/* Selo decorativo */}
-        <div className="mt-6 text-center text-amber-600/60 text-sm flex justify-center gap-4">
-          <span>🐝 100% natural</span>
-          <span>✓ Sem agrotóxicos</span>
-          <span>🍯 Colheita recente</span>
-        </div>
-      </motion.div>
+        </section>
+      </main>
     </div>
   );
 }

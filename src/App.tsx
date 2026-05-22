@@ -73,10 +73,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/cadastro" element={<Cadastro />} />
 
-          <Route
-            path="/produtos"
-            element={isAuthenticated ? <Produtos /> : <Navigate to="/login" />}
-          />
+          <Route path="/produtos" element={<Produtos />} />
 
           <Route
             path="/carrinho"
