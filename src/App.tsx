@@ -14,6 +14,7 @@ import { Cadastro } from './pages/Cadastro';
 import { Carrinho } from './pages/Carrinho';
 import { MeusPedidos } from './pages/MeusPedidos';
 import { DetalhePedido } from './pages/DetalhePedido';
+import { Perfil } from './pages/Perfil';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -88,6 +89,11 @@ function App() {
           <Route
             path="/meus-pedidos/:id"
             element={isAuthenticated ? <DetalhePedido /> : <Navigate to="/login" />}
+          />
+
+          <Route
+            path="/perfil"
+            element={isAuthenticated ? <Perfil /> : <Navigate to="/login" />}
           />
 
           <Route path="/" element={<Navigate to="/produtos" />} />

@@ -62,23 +62,31 @@ export function StoreSidebarMenu({
           </div>
 
           <div className="flex-1 space-y-3 overflow-y-auto p-5">
-            <div className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50 p-4 shadow-sm dark:border-amber-900 dark:from-gray-900 dark:to-amber-950/30">
-              <div className="flex items-center gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-3xl shadow-sm dark:bg-gray-950">
-                  👤
+            <Link
+                to="/perfil"
+                onClick={onClose}
+                className="group flex items-center justify-between rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50 p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-amber-900 dark:from-gray-900 dark:to-amber-950/30"
+                >
+                <div className="flex items-center gap-4">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-3xl shadow-sm dark:bg-gray-950">
+                    👤
+                    </div>
+
+                    <div>
+                        <p className="font-black text-amber-950 dark:text-amber-300">
+                            Perfil
+                        </p>
+
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Dados da conta e preferências
+                        </p>
+                    </div>
                 </div>
 
-                <div>
-                  <p className="font-black text-amber-950 dark:text-amber-300">
-                    Perfil
-                  </p>
-
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Dados da conta e preferências
-                  </p>
-                </div>
-              </div>
-            </div>
+                <span className="text-xl text-amber-700 transition group-hover:translate-x-1">
+                    →
+                </span>
+            </Link>
 
             <Link
               to="/carrinho"
