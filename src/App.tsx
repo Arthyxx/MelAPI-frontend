@@ -15,6 +15,7 @@ import { Carrinho } from './pages/Carrinho';
 import { MeusPedidos } from './pages/MeusPedidos';
 import { DetalhePedido } from './pages/DetalhePedido';
 import { Perfil } from './pages/Perfil';
+import { ProdutoDetalhe } from './pages/ProdutoDetalhe';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -75,6 +76,8 @@ function App() {
           <Route path="/cadastro" element={<Cadastro />} />
 
           <Route path="/produtos" element={<Produtos />} />
+
+          <Route path="/produtos/:id" element={<ProdutoDetalhe />} />
 
           <Route
             path="/carrinho"

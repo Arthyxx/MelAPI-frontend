@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import type { Produto } from '../../types/produto';
 import { formatCurrency } from '../../utils/formatCurrency';
 
@@ -87,47 +88,60 @@ export function ProdutoCard({
             <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
               Qualidade
             </p>
+
             <p className="text-sm font-black text-amber-950 dark:text-amber-200">
               Premium
             </p>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => onAddToCart(produto)}
-          disabled={semEstoque}
-          className={`group/btn relative w-full overflow-hidden rounded-2xl px-5 py-4 font-black shadow-lg transition duration-300 ${
-            semEstoque
-              ? 'cursor-not-allowed bg-gray-200 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
-              : isLogged
-                ? 'bg-gradient-to-r from-amber-600 via-yellow-600 to-amber-700 text-white hover:-translate-y-1 hover:shadow-2xl'
-                : 'bg-gradient-to-r from-amber-950 to-amber-800 text-white hover:-translate-y-1 hover:shadow-2xl'
-          }`}
-        >
-          {!semEstoque && (
-            <span className="absolute inset-0 translate-x-[-100%] bg-white/20 transition duration-700 group-hover/btn:translate-x-[100%]" />
-          )}
+        <div className="grid gap-3">
+          <Link
+            to={`/produtos/${produto.id}`}
+            className="group/details inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-white px-5 py-4 font-black text-amber-800 shadow-sm transition duration-300 hover:-translate-y-1 hover:bg-amber-50 hover:shadow-lg dark:border-amber-800 dark:bg-gray-950 dark:text-amber-300 dark:hover:bg-gray-900"
+          >
+            Ver detalhes
+            <span className="transition group-hover/details:translate-x-1">
+              →
+            </span>
+          </Link>
 
-          <span className="relative flex items-center justify-center gap-2">
-            {semEstoque ? (
-              <>
-                <span>🚫</span>
-                Indisponível
-              </>
-            ) : isLogged ? (
-              <>
-                <span>🛒</span>
-                Adicionar ao carrinho
-              </>
-            ) : (
-              <>
-                <span>🔐</span>
-                Entrar para comprar
-              </>
+          <button
+            type="button"
+            onClick={() => onAddToCart(produto)}
+            disabled={semEstoque}
+            className={`group/btn relative w-full overflow-hidden rounded-2xl px-5 py-4 font-black shadow-lg transition duration-300 ${
+              semEstoque
+                ? 'cursor-not-allowed bg-gray-200 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+                : isLogged
+                  ? 'bg-gradient-to-r from-amber-600 via-yellow-600 to-amber-700 text-white hover:-translate-y-1 hover:shadow-2xl'
+                  : 'bg-gradient-to-r from-amber-950 to-amber-800 text-white hover:-translate-y-1 hover:shadow-2xl'
+            }`}
+          >
+            {!semEstoque && (
+              <span className="absolute inset-0 translate-x-[-100%] bg-white/20 transition duration-700 group-hover/btn:translate-x-[100%]" />
             )}
-          </span>
-        </button>
+
+            <span className="relative flex items-center justify-center gap-2">
+              {semEstoque ? (
+                <>
+                  <span>🚫</span>
+                  Indisponível
+                </>
+              ) : isLogged ? (
+                <>
+                  <span>🛒</span>
+                  Adicionar ao carrinho
+                </>
+              ) : (
+                <>
+                  <span>🔐</span>
+                  Entrar para comprar
+                </>
+              )}
+            </span>
+          </button>
+        </div>
       </div>
     </article>
   );

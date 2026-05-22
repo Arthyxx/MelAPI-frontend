@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { api, setAuthToken } from '../services/api';
+import { setAuthToken } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { getUserRole } from '../utils/decodeToken';
 import { addToCart, getCartItemsCount } from '../utils/cart';
+import { findAllProdutos } from '../services/produtoService';
 
 import { StoreFooter } from '../components/layout/StoreFooter';
 import { StoreSidebarMenu } from '../components/layout/StoreSidebarMenu';
@@ -28,24 +29,23 @@ export function Produtos() {
   const role = getUserRole();
 
   useEffect(() => {
-    const buscarProdutos = async () => {
-      try {
-        setErro('');
+  const buscarProdutos = async () => {
+    try {
+      setErro('');
 
-        const response = await api.get('/produtos');
-        const conteudo = response.data.content || response.data;
+      const produtos = await findAllProdutos();
 
-        setProdutos(Array.isArray(conteudo) ? conteudo : []);
-      } catch (err) {
-        console.error('Erro ao carregar produtos:', err);
-        setErro('Erro ao carregar produtos. Tente novamente em instantes.');
-      } finally {
-        setCarregando(false);
-      }
-    };
+      setProdutos(produtos);
+    } catch (err) {
+      console.error('Erro ao carregar produtos:', err);
+      setErro('Erro ao carregar produtos. Tente novamente em instantes.');
+    } finally {
+      setCarregando(false);
+    }
+  };
 
-    buscarProdutos();
-  }, []);
+  buscarProdutos();
+}, []);
 
   useEffect(() => {
     const atualizarEstadoLogin = () => {
