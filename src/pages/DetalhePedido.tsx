@@ -1,44 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../services/api';
-
-interface ItemPedido {
-  id: number;
-  produtoId: number;
-  produtoName: string;
-  quantity: number;
-  unitPrice: number;
-  subtotal: number;
-}
-
-interface Pedido {
-  id: number;
-  clienteId: number;
-  clienteName: string;
-  items: ItemPedido[];
-  totalPrice: number;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-const statusColors: Record<string, string> = {
-  PENDENTE: 'bg-yellow-100 text-yellow-800',
-  PAGO: 'bg-blue-100 text-blue-800',
-  EM_PREPARACAO: 'bg-orange-100 text-orange-800',
-  ENVIADO: 'bg-purple-100 text-purple-800',
-  ENTREGUE: 'bg-green-100 text-green-800',
-  CANCELADO: 'bg-red-100 text-red-800',
-};
-
-const statusLabels: Record<string, string> = {
-  PENDENTE: 'Pendente',
-  PAGO: 'Pago',
-  EM_PREPARACAO: 'Em preparação',
-  ENVIADO: 'Enviado',
-  ENTREGUE: 'Entregue',
-  CANCELADO: 'Cancelado',
-};
+import type { Pedido } from '../types/pedido';
+import { formatDate } from '../utils/formatDate';
+import { statusPedidoColors, statusPedidoLabels } from '../constants/statusPedido';
 
 export function DetalhePedido() {
   const { id } = useParams();
@@ -77,24 +42,6 @@ export function DetalhePedido() {
     return Number(value ?? 0).toLocaleString('pt-BR', {
       style: 'currency',
       currency: 'BRL',
-    });
-  };
-
-  const formatDate = (date?: string | null) => {
-    if (!date) return 'Data não informada';
-
-    const parsedDate = new Date(date);
-
-    if (Number.isNaN(parsedDate.getTime())) {
-      return 'Data inválida';
-    }
-
-    return parsedDate.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     });
   };
 
@@ -190,10 +137,10 @@ export function DetalhePedido() {
               <div className="flex flex-col gap-3 md:items-end">
                 <span
                   className={`w-fit rounded-full px-4 py-2 text-sm font-bold ${
-                    statusColors[status] || 'bg-gray-100 text-gray-800'
+                    statusPedidoColors[status] || 'bg-gray-100 text-gray-800'
                   }`}
                 >
-                  {statusLabels[status] || status}
+                  {statusPedidoLabels[status] || status}
                 </span>
 
                 <div className="text-left md:text-right">

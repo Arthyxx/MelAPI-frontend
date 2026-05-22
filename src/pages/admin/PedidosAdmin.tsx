@@ -1,52 +1,9 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../services/api';
-
-interface ItemPedido {
-  id: number;
-  produtoId: number;
-  produtoName: string;
-  quantity: number;
-  unitPrice: number;
-  subtotal: number;
-}
-
-interface Pedido {
-  id: number;
-  clienteId: number;
-  clienteName: string;
-  items: ItemPedido[];
-  totalPrice: number;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-const statusColors: Record<string, string> = {
-  PENDENTE: 'bg-yellow-100 text-yellow-800',
-  PAGO: 'bg-blue-100 text-blue-800',
-  EM_PREPARACAO: 'bg-orange-100 text-orange-800',
-  ENVIADO: 'bg-purple-100 text-purple-800',
-  ENTREGUE: 'bg-green-100 text-green-800',
-  CANCELADO: 'bg-red-100 text-red-800',
-};
-
-const statusOptions = [
-  'PENDENTE',
-  'PAGO',
-  'EM_PREPARACAO',
-  'ENVIADO',
-  'ENTREGUE',
-  'CANCELADO',
-];
-
-const statusLabels: Record<string, string> = {
-  PENDENTE: 'Pendente',
-  PAGO: 'Pago',
-  EM_PREPARACAO: 'Em preparação',
-  ENVIADO: 'Enviado',
-  ENTREGUE: 'Entregue',
-  CANCELADO: 'Cancelado',
-};
+import type { Pedido } from '../../types/pedido';
+import { statusPedidoColors, statusPedidoLabels, statusPedidoOptions } from '../../constants/statusPedido';
+import { formatCurrency } from '../../utils/formatCurrency';
+import { formatDate } from '../../utils/formatDate';
 
 export function PedidosAdmin() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
@@ -58,9 +15,9 @@ export function PedidosAdmin() {
       setError('');
       setLoading(true);
 
-      const res = await api.get('/pedidos');
+      const response = await api.get('/pedidos');
 
-      const data = Array.isArray(res.data) ? res.data : [];
+      const data = Array.isArray(response.data) ? response.data : [];
       setPedidos(data);
     } catch (err) {
       console.error('Erro ao carregar pedidos:', err);
@@ -91,27 +48,6 @@ export function PedidosAdmin() {
           'Erro ao atualizar status.'
       );
     }
-  };
-
-  const formatCurrency = (value?: number | null) => {
-    return Number(value ?? 0).toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    });
-  };
-
-  const formatDate = (date?: string | null) => {
-    if (!date) {
-      return 'Data não informada';
-    }
-
-    const parsedDate = new Date(date);
-
-    if (Number.isNaN(parsedDate.getTime())) {
-      return 'Data inválida';
-    }
-
-    return parsedDate.toLocaleDateString('pt-BR');
   };
 
   if (loading) {
@@ -194,7 +130,10 @@ export function PedidosAdmin() {
                       <div className="space-y-1">
                         {pedido.items?.length > 0 ? (
                           pedido.items.map((item) => (
-                            <div key={item.id} className="text-sm text-gray-700">
+                            <div
+                              key={item.id}
+                              className="text-sm text-gray-700"
+                            >
                               <span className="font-medium">
                                 {item.produtoName}
                               </span>{' '}
@@ -218,10 +157,11 @@ export function PedidosAdmin() {
                     <td className="p-3">
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          statusColors[status] || 'bg-gray-100 text-gray-800'
+                          statusPedidoColors[status] ||
+                          'bg-gray-100 text-gray-800'
                         }`}
                       >
-                        {statusLabels[status] || status}
+                        {statusPedidoLabels[status] || status}
                       </span>
                     </td>
 
@@ -231,21 +171,18 @@ export function PedidosAdmin() {
 
                     <td className="p-3">
                       <select
-                        value={status}
-                        onChange={(e) => {
-                          const newStatus = e.target.value;
-
-                          if (newStatus === status) {
-                            return;
-                          }
-
-                          updateStatus(pedido.id, newStatus);
-                        }}
+                        value={pedido.status}
+                        onChange={(e) =>
+                          updateStatus(pedido.id, e.target.value)
+                        }
                         className="rounded-md border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500"
                       >
-                        {statusOptions.map((option) => (
-                          <option key={option} value={option}>
-                            {statusLabels[option] || option}
+                        {statusPedidoOptions.map((statusOption) => (
+                          <option
+                            key={statusOption.value}
+                            value={statusOption.value}
+                          >
+                            {statusOption.label}
                           </option>
                         ))}
                       </select>
