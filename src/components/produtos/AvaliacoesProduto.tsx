@@ -36,6 +36,7 @@ export function AvaliacoesProduto({
   const [comment, setComment] = useState(minhaAvaliacao?.comment || '');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [editingMinhaAvaliacao, setEditingMinhaAvaliacao] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -48,11 +49,18 @@ export function AvaliacoesProduto({
         avaliacoes.length
       : 0;
 
+  const outrasAvaliacoes = minhaAvaliacao
+    ? avaliacoes.filter((avaliacao) => avaliacao.id !== minhaAvaliacao.id)
+    : avaliacoes;
+
   useEffect(() => {
     setRating(minhaAvaliacao?.rating || 5);
     setComment(minhaAvaliacao?.comment || '');
     setError('');
-    setSuccess('');
+
+    if (!minhaAvaliacao) {
+      setEditingMinhaAvaliacao(false);
+    }
   }, [minhaAvaliacao]);
 
   const renderStars = (value: number) => {
@@ -121,6 +129,7 @@ export function AvaliacoesProduto({
       }
 
       await onSuccess();
+      setEditingMinhaAvaliacao(false);
     } catch (err: any) {
       console.error('Erro ao salvar avaliação:', {
         statusCode: err.response?.status,
@@ -154,6 +163,7 @@ export function AvaliacoesProduto({
 
       setRating(5);
       setComment('');
+      setEditingMinhaAvaliacao(false);
       setSuccess('Avaliação removida com sucesso!');
 
       await onSuccess();
@@ -174,96 +184,36 @@ export function AvaliacoesProduto({
     }
   };
 
-  const renderMinhaAvaliacaoArea = () => {
-    if (!isLogged) {
-      return (
-        <div className="rounded-3xl border border-dashed border-amber-200 bg-amber-50/70 p-6 text-center dark:border-amber-800 dark:bg-amber-950/20">
-          <div className="text-5xl">🔐</div>
-
-          <h4 className="mt-4 text-xl font-black text-amber-900 dark:text-amber-300">
-            Entre para avaliar
-          </h4>
-
-          <p className="mx-auto mt-2 max-w-md text-sm text-gray-600 dark:text-gray-400">
-            Você pode ver avaliações sem login, mas para avaliar precisa entrar
-            na sua conta.
-          </p>
-
-          <Link
-            to="/login"
-            className="mt-5 inline-flex rounded-2xl bg-amber-600 px-6 py-3 font-black text-white shadow-lg transition hover:-translate-y-1 hover:bg-amber-700 hover:shadow-xl"
-          >
-            Entrar para avaliar
-          </Link>
-        </div>
-      );
-    }
-
-    if (loadingCanReview && !isEditing) {
-      return (
-        <div className="rounded-3xl border border-amber-100 bg-amber-50/70 p-6 text-center dark:border-amber-900 dark:bg-amber-950/20">
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-amber-300 border-t-amber-700" />
-
-          <p className="mt-4 font-bold text-amber-900 dark:text-amber-300">
-            Verificando se você pode avaliar este produto...
-          </p>
-        </div>
-      );
-    }
-
-    if (!isEditing && !canCreateReview) {
-      return (
-        <div className="rounded-3xl border border-dashed border-amber-200 bg-amber-50/70 p-6 text-center dark:border-amber-800 dark:bg-amber-950/20">
-          <div className="text-5xl">📦</div>
-
-          <h4 className="mt-4 text-xl font-black text-amber-900 dark:text-amber-300">
-            Avaliação disponível após entrega
-          </h4>
-
-          <p className="mx-auto mt-2 max-w-md text-sm text-gray-600 dark:text-gray-400">
-            {canReview?.message ||
-              'Você poderá avaliar este produto depois que um pedido contendo ele estiver entregue.'}
-          </p>
-
-          <Link
-            to="/meus-pedidos"
-            className="mt-5 inline-flex rounded-2xl border border-amber-200 bg-white px-6 py-3 font-black text-amber-800 shadow-sm transition hover:-translate-y-1 hover:bg-amber-50 hover:shadow-lg dark:border-amber-800 dark:bg-gray-950 dark:text-amber-300 dark:hover:bg-gray-900"
-          >
-            Ver meus pedidos
-          </Link>
-        </div>
-      );
-    }
-
+  const renderReviewForm = () => {
     return (
-      <div className="rounded-3xl border border-amber-100 bg-amber-50/60 p-5 dark:border-amber-900 dark:bg-amber-950/20">
+      <div className="rounded-[1.75rem] border border-amber-100 bg-white p-5 shadow-sm dark:border-amber-900 dark:bg-gray-950">
         <div className="mb-5">
-          <h4 className="text-xl font-black text-amber-900 dark:text-amber-300">
-            {isEditing ? 'Editar sua avaliação' : 'Deixe sua avaliação'}
+          <h4 className="text-xl font-black text-gray-900 dark:text-white">
+            {isEditing ? 'Editar avaliação' : 'Deixe sua avaliação'}
           </h4>
 
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {isEditing
-              ? 'Você já avaliou este produto. Pode editar ou remover sua avaliação.'
+              ? 'Altere sua nota ou comentário e salve novamente.'
               : 'Conte sua experiência depois de receber o produto.'}
           </p>
         </div>
 
         {error && (
-          <div className="mb-5 rounded-2xl border border-red-300 bg-red-50 px-5 py-4 text-sm font-medium text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+          <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
             {error}
           </div>
         )}
 
         {success && (
-          <div className="mb-5 rounded-2xl border border-green-300 bg-green-50 px-5 py-4 text-sm font-medium text-green-700 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300">
+          <div className="mb-5 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300">
             {success}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="mb-3 block text-sm font-black text-amber-900 dark:text-amber-300">
+            <label className="mb-3 block text-sm font-black text-gray-800 dark:text-gray-200">
               Nota do produto
             </label>
 
@@ -275,7 +225,7 @@ export function AvaliacoesProduto({
           </div>
 
           <div>
-            <label className="mb-3 block text-sm font-black text-amber-900 dark:text-amber-300">
+            <label className="mb-3 block text-sm font-black text-gray-800 dark:text-gray-200">
               Comentário
             </label>
 
@@ -285,7 +235,7 @@ export function AvaliacoesProduto({
               maxLength={1000}
               rows={5}
               placeholder="Conte o que achou do produto..."
-              className="w-full resize-none rounded-2xl border border-amber-200 bg-white/90 px-4 py-3 text-gray-900 shadow-sm outline-none transition duration-300 placeholder:text-gray-400 focus:border-amber-500 focus:ring-4 focus:ring-amber-200 dark:border-amber-800 dark:bg-gray-950/80 dark:text-white dark:focus:ring-amber-900"
+              className="w-full resize-none rounded-2xl border border-amber-200 bg-white px-4 py-3 text-gray-900 shadow-sm outline-none transition duration-300 placeholder:text-gray-400 focus:border-amber-500 focus:ring-4 focus:ring-amber-100 dark:border-amber-800 dark:bg-gray-950 dark:text-white dark:focus:ring-amber-900"
             />
 
             <p className="mt-2 text-right text-xs text-gray-500 dark:text-gray-400">
@@ -297,11 +247,17 @@ export function AvaliacoesProduto({
             {isEditing ? (
               <button
                 type="button"
-                onClick={handleDelete}
-                disabled={deleting || saving}
-                className="rounded-2xl border border-red-200 bg-red-50 px-6 py-3 font-black text-red-700 shadow-sm transition hover:-translate-y-1 hover:bg-red-100 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+                onClick={() => {
+                  setEditingMinhaAvaliacao(false);
+                  setError('');
+                  setSuccess('');
+                  setRating(minhaAvaliacao?.rating || 5);
+                  setComment(minhaAvaliacao?.comment || '');
+                }}
+                disabled={saving || deleting}
+                className="rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-black text-gray-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-50 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-300"
               >
-                {deleting ? 'Removendo...' : 'Remover avaliação'}
+                Cancelar edição
               </button>
             ) : (
               <span className="text-sm text-gray-500 dark:text-gray-400">
@@ -312,14 +268,14 @@ export function AvaliacoesProduto({
             <button
               type="submit"
               disabled={saving || deleting}
-              className="group relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-600 via-yellow-600 to-amber-700 px-8 py-4 font-black text-white shadow-xl transition duration-300 hover:-translate-y-1 hover:shadow-2xl disabled:cursor-not-allowed disabled:opacity-70"
+              className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-amber-600 via-yellow-600 to-amber-700 px-6 py-3 text-sm font-black text-white shadow-lg transition duration-300 hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70"
             >
               <span className="absolute inset-0 translate-x-[-100%] bg-white/20 transition duration-700 group-hover:translate-x-[100%]" />
 
               <span className="relative flex items-center justify-center gap-2">
                 {saving ? (
                   <>
-                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                     Salvando...
                   </>
                 ) : (
@@ -336,6 +292,163 @@ export function AvaliacoesProduto({
         </form>
       </div>
     );
+  };
+
+  const renderMinhaAvaliacaoArea = () => {
+    if (!isLogged) {
+      return (
+        <div className="rounded-[1.75rem] border border-dashed border-amber-200 bg-white p-6 text-center shadow-sm dark:border-amber-900 dark:bg-gray-950">
+          <div className="text-5xl">🔐</div>
+
+          <h4 className="mt-4 text-xl font-black text-gray-900 dark:text-white">
+            Entre para avaliar
+          </h4>
+
+          <p className="mx-auto mt-2 max-w-md text-sm text-gray-500 dark:text-gray-400">
+            Você pode ver avaliações sem login, mas para avaliar precisa entrar
+            na sua conta.
+          </p>
+
+          <Link
+            to="/login"
+            className="mt-5 inline-flex rounded-xl bg-amber-600 px-5 py-3 text-sm font-black text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-amber-700 hover:shadow-xl"
+          >
+            Entrar para avaliar
+          </Link>
+        </div>
+      );
+    }
+
+    if (loadingCanReview && !isEditing) {
+      return (
+        <div className="rounded-[1.75rem] border border-amber-100 bg-white p-6 text-center shadow-sm dark:border-amber-900 dark:bg-gray-950">
+          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-amber-300 border-t-amber-700" />
+
+          <p className="mt-4 font-bold text-gray-800 dark:text-gray-200">
+            Verificando se você pode avaliar este produto...
+          </p>
+        </div>
+      );
+    }
+
+    if (isEditing && !editingMinhaAvaliacao && minhaAvaliacao) {
+      return (
+        <div className="rounded-[1.75rem] border border-amber-100 bg-white p-5 shadow-sm dark:border-amber-900 dark:bg-gray-950">
+          {success && (
+            <div className="mb-5 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300">
+              {success}
+            </div>
+          )}
+
+          {error && (
+            <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+              {error}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 to-yellow-100 text-2xl shadow-sm dark:from-amber-950 dark:to-gray-900">
+                👤
+              </div>
+
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h4 className="text-lg font-black text-gray-900 dark:text-white">
+                    Sua avaliação
+                  </h4>
+
+                  <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                    Verificada
+                  </span>
+                </div>
+
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <div className="text-lg leading-none">
+                    {renderStars(minhaAvaliacao.rating)}
+                  </div>
+
+                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                    {minhaAvaliacao.rating}/5
+                  </span>
+
+                  <span className="text-gray-300 dark:text-gray-700">•</span>
+
+                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                    {formatDate(minhaAvaliacao.createdAt)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setSuccess('');
+                  setError('');
+                  setEditingMinhaAvaliacao(true);
+                }}
+                className="rounded-xl border border-amber-200 bg-white px-4 py-2 text-sm font-black text-amber-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-amber-50 hover:shadow-md dark:border-amber-800 dark:bg-gray-950 dark:text-amber-300 dark:hover:bg-gray-900"
+              >
+                Editar
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting || saving}
+                className="rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-black text-red-600 shadow-sm transition hover:-translate-y-0.5 hover:bg-red-50 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-900 dark:bg-gray-950 dark:text-red-300 dark:hover:bg-red-950/30"
+              >
+                {deleting ? 'Removendo...' : 'Remover'}
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-5 border-t border-gray-100 pt-5 dark:border-gray-800">
+            {minhaAvaliacao.comment ? (
+              <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+                “{minhaAvaliacao.comment}”
+              </p>
+            ) : (
+              <p className="text-sm italic text-gray-400">
+                Você avaliou sem comentário.
+              </p>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (isEditing && editingMinhaAvaliacao) {
+      return renderReviewForm();
+    }
+
+    if (!isEditing && !canCreateReview) {
+      return (
+        <div className="rounded-[1.75rem] border border-dashed border-amber-200 bg-white p-6 text-center shadow-sm dark:border-amber-900 dark:bg-gray-950">
+          <div className="text-5xl">📦</div>
+
+          <h4 className="mt-4 text-xl font-black text-gray-900 dark:text-white">
+            Avaliação disponível após entrega
+          </h4>
+
+          <p className="mx-auto mt-2 max-w-md text-sm text-gray-500 dark:text-gray-400">
+            {canReview?.message ||
+              'Você poderá avaliar este produto depois que um pedido contendo ele estiver entregue.'}
+          </p>
+
+          <Link
+            to="/meus-pedidos"
+            className="mt-5 inline-flex rounded-xl border border-amber-200 bg-white px-5 py-3 text-sm font-black text-amber-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-amber-50 hover:shadow-md dark:border-amber-800 dark:bg-gray-950 dark:text-amber-300 dark:hover:bg-gray-900"
+          >
+            Ver meus pedidos
+          </Link>
+        </div>
+      );
+    }
+
+    return renderReviewForm();
   };
 
   if (loading) {
@@ -404,7 +517,7 @@ export function AvaliacoesProduto({
             </div>
 
             <div>
-              <h4 className="font-black text-amber-900 dark:text-amber-300">
+              <h4 className="font-black text-gray-900 dark:text-white">
                 Sua avaliação
               </h4>
 
@@ -424,7 +537,7 @@ export function AvaliacoesProduto({
             </div>
 
             <div>
-              <h4 className="font-black text-amber-900 dark:text-amber-300">
+              <h4 className="font-black text-gray-900 dark:text-white">
                 Avaliações dos clientes
               </h4>
 
@@ -434,53 +547,63 @@ export function AvaliacoesProduto({
             </div>
           </div>
 
-          {avaliacoes.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-amber-200 bg-amber-50/70 p-8 text-center dark:border-amber-800 dark:bg-amber-950/20">
-              <div className="text-6xl">⭐</div>
+          {outrasAvaliacoes.length === 0 ? (
+            <div className="rounded-[1.75rem] border border-dashed border-gray-200 bg-white p-8 text-center shadow-sm dark:border-gray-800 dark:bg-gray-950">
+              <div className="text-5xl">⭐</div>
 
-              <h4 className="mt-4 text-2xl font-black text-amber-900 dark:text-amber-300">
-                Ainda não há avaliações
+              <h4 className="mt-4 text-xl font-black text-gray-900 dark:text-white">
+                Ainda não há outras avaliações
               </h4>
 
-              <p className="mx-auto mt-2 max-w-md text-sm text-gray-600 dark:text-gray-400">
-                Nenhum cliente avaliou este produto ainda.
+              <p className="mx-auto mt-2 max-w-md text-sm text-gray-500 dark:text-gray-400">
+                Nenhum outro cliente avaliou este produto ainda.
               </p>
             </div>
           ) : (
             <div className="grid gap-4">
-              {avaliacoes.map((avaliacao) => (
+              {outrasAvaliacoes.map((avaliacao) => (
                 <article
                   key={avaliacao.id}
-                  className="rounded-3xl border border-amber-100 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-amber-900 dark:bg-gray-950"
+                  className="rounded-[1.75rem] border border-gray-100 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-gray-800 dark:bg-gray-950"
                 >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex items-start gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-2xl shadow-sm dark:bg-amber-950">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-xl shadow-sm dark:bg-amber-950/40">
                         👤
                       </div>
 
                       <div>
-                        <h4 className="font-black text-amber-950 dark:text-amber-300">
+                        <h4 className="font-black text-gray-900 dark:text-white">
                           {avaliacao.clienteName || 'Cliente'}
                         </h4>
 
-                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                          Avaliado em {formatDate(avaliacao.createdAt)}
-                        </p>
-                      </div>
-                    </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <div className="text-base leading-none">
+                            {renderStars(avaliacao.rating)}
+                          </div>
 
-                    <div className="text-xl">
-                      {renderStars(avaliacao.rating)}
+                          <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                            {avaliacao.rating}/5
+                          </span>
+
+                          <span className="text-gray-300 dark:text-gray-700">
+                            •
+                          </span>
+
+                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                            {formatDate(avaliacao.createdAt)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
                   {avaliacao.comment ? (
-                    <p className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm leading-relaxed text-gray-700 dark:bg-gray-900 dark:text-gray-300">
-                      {avaliacao.comment}
+                    <p className="mt-5 border-t border-gray-100 pt-5 text-sm leading-relaxed text-gray-700 dark:border-gray-800 dark:text-gray-300">
+                      “{avaliacao.comment}”
                     </p>
                   ) : (
-                    <p className="mt-4 text-sm italic text-gray-400">
+                    <p className="mt-5 border-t border-gray-100 pt-5 text-sm italic text-gray-400 dark:border-gray-800">
                       Cliente avaliou sem comentário.
                     </p>
                   )}
