@@ -16,6 +16,25 @@ export function ProdutoCard({
   onAddToCart,
 }: ProdutoCardProps) {
   const semEstoque = produto.stockQuantity <= 0;
+  const averageRating = produto.averageRating ?? 0;
+  const reviewsCount = produto.reviewsCount ?? 0;
+
+  const renderStars = () => {
+    const roundedRating = Math.round(averageRating);
+
+    return Array.from({ length: 5 }, (_, index) => {
+      const filled = index < roundedRating;
+
+      return (
+        <span
+          key={index}
+          className={filled ? 'text-yellow-400' : 'text-gray-500'}
+        >
+          ★
+        </span>
+      );
+    });
+  };
 
   return (
     <article
@@ -63,13 +82,30 @@ export function ProdutoCard({
           </p>
         </div>
 
-        <div className="mb-5 flex flex-wrap gap-2">
+        <div className="mb-4 flex flex-wrap gap-2">
           <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
             🐝 Natural
           </span>
 
           <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">
             Estoque: {produto.stockQuantity}
+          </span>
+        </div>
+
+        <div className="mb-5 flex items-center gap-2 text-sm">
+          <div className="flex items-center gap-0.5 text-base leading-none">
+            {renderStars()}
+          </div>
+
+          <span className="font-black text-amber-700 dark:text-amber-300">
+            {averageRating.toFixed(1)}
+          </span>
+
+          <span className="text-gray-400">·</span>
+
+          <span className="font-medium text-gray-500 dark:text-gray-400">
+            {reviewsCount}{' '}
+            {reviewsCount === 1 ? 'avaliação' : 'avaliações'}
           </span>
         </div>
 
@@ -100,6 +136,7 @@ export function ProdutoCard({
             to={`/produtos/${produto.id}`}
             className="group/details inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-white px-5 py-4 font-black text-amber-800 shadow-sm transition duration-300 hover:-translate-y-1 hover:bg-amber-50 hover:shadow-lg dark:border-amber-800 dark:bg-gray-950 dark:text-amber-300 dark:hover:bg-gray-900"
           >
+            <span>👀</span>
             Ver detalhes
             <span className="transition group-hover/details:translate-x-1">
               →
