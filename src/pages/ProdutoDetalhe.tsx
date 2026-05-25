@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { findProdutoById } from '../services/produtoService';
 import {
@@ -12,13 +12,14 @@ import type {
 } from '../types/avaliacaoProduto';
 import { addToCart, getCartItemsCount } from '../utils/cart';
 import { decodeToken } from '../utils/decodeToken';
-import { AvaliacoesProduto } from '../components/produtos/AvaliacoesProduto';
 
 import { ProdutoDetalheHeader } from '../components/produtos/detalhe/ProdutoDetalheHeader';
 import { ProdutoDetalheMain } from '../components/produtos/detalhe/ProdutoDetalheMain';
 import { ProdutoDetalheInfoCards } from '../components/produtos/detalhe/ProdutoDetalheInfoCards';
 import { ProdutoDetalheLoading } from '../components/produtos/detalhe/ProdutoDetalheLoading';
 import { ProdutoDetalheError } from '../components/produtos/detalhe/ProdutoDetalheError';
+import { AvaliacoesProduto } from '../components/produtos/AvaliacoesProduto';
+import { CartToast } from '../components/ui/CartToast';
 
 export function ProdutoDetalhe() {
   const { id } = useParams();
@@ -34,6 +35,11 @@ export function ProdutoDetalhe() {
 
   const [error, setError] = useState('');
   const [cartItemsCount, setCartItemsCount] = useState(getCartItemsCount());
+
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  const toastTimeoutRef = useRef<number | null>(null);
 
   const token = localStorage.getItem('token');
   const isLogged = !!token;
@@ -52,6 +58,27 @@ export function ProdutoDetalhe() {
       ) || null
     );
   }, [avaliacoes, clienteId]);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        window.clearTimeout(toastTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const showCartToast = (message: string) => {
+    setToastMessage(message);
+    setToastVisible(true);
+
+    if (toastTimeoutRef.current) {
+      window.clearTimeout(toastTimeoutRef.current);
+    }
+
+    toastTimeoutRef.current = window.setTimeout(() => {
+      setToastVisible(false);
+    }, 3000);
+  };
 
   const reloadCanReview = async () => {
     if (!id || !token) {
@@ -168,7 +195,7 @@ export function ProdutoDetalhe() {
 
       setCartItemsCount(totalItems);
 
-      alert(`🍯 ${produto.name} adicionado ao carrinho!`);
+      showCartToast(`${produto.name} foi adicionado ao carrinho.`);
     } catch (error) {
       if (error instanceof Error) {
         alert(error.message);
@@ -184,13 +211,19 @@ export function ProdutoDetalhe() {
 
   if (error || !produto) {
     return <ProdutoDetalheError message={error} />;
-}
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 dark:from-gray-950 dark:via-gray-900 dark:to-amber-950">
       <ProdutoDetalheHeader
         isLogged={isLogged}
         cartItemsCount={cartItemsCount}
+      />
+
+      <CartToast
+        message={toastMessage}
+        visible={toastVisible}
+        onClose={() => setToastVisible(false)}
       />
 
       <main className="container mx-auto px-4 py-10">
@@ -201,6 +234,7 @@ export function ProdutoDetalhe() {
         />
 
         <ProdutoDetalheInfoCards />
+
         <AvaliacoesProduto
           produtoId={produto.id}
           avaliacoes={avaliacoes}

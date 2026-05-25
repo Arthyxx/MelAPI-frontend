@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { setAuthToken } from '../services/api';
 import { findAllProdutos } from '../services/produtoService';
@@ -14,6 +14,7 @@ import { ProdutosHero } from '../components/produtos/ProdutosHero';
 import { ProdutosBenefits } from '../components/produtos/ProdutosBenefits';
 import { ProdutosGrid } from '../components/produtos/ProdutosGrid';
 import { ProdutosInstitutional } from '../components/produtos/ProdutosInstitutional';
+import { CartToast } from '../components/ui/CartToast';
 
 export function Produtos() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -27,6 +28,11 @@ export function Produtos() {
   const [cartItemsCount, setCartItemsCount] = useState(getCartItemsCount());
   const [isLogged, setIsLogged] = useState(!!localStorage.getItem('token'));
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  const toastTimeoutRef = useRef<number | null>(null);
 
   const navigate = useNavigate();
   const role = getUserRole();
@@ -56,11 +62,11 @@ export function Produtos() {
       }
     };
 
-    const timeoutId = setTimeout(() => {
+    const timeoutId = window.setTimeout(() => {
       buscarProdutos();
     }, 400);
 
-    return () => clearTimeout(timeoutId);
+    return () => window.clearTimeout(timeoutId);
   }, [busca, somenteDisponiveis, ordenacao]);
 
   useEffect(() => {
@@ -73,8 +79,25 @@ export function Produtos() {
 
     return () => {
       window.removeEventListener('storage', atualizarEstadoLogin);
+
+      if (toastTimeoutRef.current) {
+        window.clearTimeout(toastTimeoutRef.current);
+      }
     };
   }, []);
+
+  const showCartToast = (message: string) => {
+    setToastMessage(message);
+    setToastVisible(true);
+
+    if (toastTimeoutRef.current) {
+      window.clearTimeout(toastTimeoutRef.current);
+    }
+
+    toastTimeoutRef.current = window.setTimeout(() => {
+      setToastVisible(false);
+    }, 3000);
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -110,7 +133,7 @@ export function Produtos() {
 
       setCartItemsCount(totalItems);
 
-      alert(`🍯 ${produto.name} adicionado ao carrinho!`);
+      showCartToast(`${produto.name} foi adicionado ao carrinho.`);
     } catch (error) {
       if (error instanceof Error) {
         alert(error.message);
@@ -177,6 +200,12 @@ export function Produtos() {
         role={role}
         onClose={() => setMenuOpen(false)}
         onLogout={handleLogout}
+      />
+
+      <CartToast
+        message={toastMessage}
+        visible={toastVisible}
+        onClose={() => setToastVisible(false)}
       />
 
       <ProdutosHero
