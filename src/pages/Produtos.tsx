@@ -1,26 +1,29 @@
-import { useEffect, useMemo, useState } from 'react';
-import { setAuthToken } from '../services/api';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { setAuthToken } from '../services/api';
+import { findAllProdutos } from '../services/produtoService';
 import { getUserRole } from '../utils/decodeToken';
 import { addToCart, getCartItemsCount } from '../utils/cart';
-import { findAllProdutos } from '../services/produtoService';
+import type { Produto } from '../types/produto';
 
-import { StoreFooter } from '../components/layout/StoreFooter';
-import { StoreSidebarMenu } from '../components/layout/StoreSidebarMenu';
 import { StoreHeader } from '../components/layout/StoreHeader';
+import { StoreSidebarMenu } from '../components/layout/StoreSidebarMenu';
+import { StoreFooter } from '../components/layout/StoreFooter';
 
 import { ProdutosHero } from '../components/produtos/ProdutosHero';
 import { ProdutosBenefits } from '../components/produtos/ProdutosBenefits';
-import { ProdutosInstitutional } from '../components/produtos/ProdutosInstitutional';
 import { ProdutosGrid } from '../components/produtos/ProdutosGrid';
-
-import type { Produto } from '../types/produto';
+import { ProdutosInstitutional } from '../components/produtos/ProdutosInstitutional';
 
 export function Produtos() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
+
   const [busca, setBusca] = useState('');
+  const [somenteDisponiveis, setSomenteDisponiveis] = useState(false);
+  const [ordenacao, setOrdenacao] = useState('');
+
   const [cartItemsCount, setCartItemsCount] = useState(getCartItemsCount());
   const [isLogged, setIsLogged] = useState(!!localStorage.getItem('token'));
   const [menuOpen, setMenuOpen] = useState(false);
@@ -29,23 +32,36 @@ export function Produtos() {
   const role = getUserRole();
 
   useEffect(() => {
-  const buscarProdutos = async () => {
-    try {
-      setErro('');
+    const buscarProdutos = async () => {
+      try {
+        setErro('');
+        setCarregando(true);
 
-      const produtos = await findAllProdutos();
+        const produtosData = await findAllProdutos({
+          name: busca,
+          active: true,
+          sort: ordenacao || undefined,
+        });
 
-      setProdutos(produtos);
-    } catch (err) {
-      console.error('Erro ao carregar produtos:', err);
-      setErro('Erro ao carregar produtos. Tente novamente em instantes.');
-    } finally {
-      setCarregando(false);
-    }
-  };
+        const produtosFiltradosPorEstoque = somenteDisponiveis
+          ? produtosData.filter((produto) => produto.stockQuantity > 0)
+          : produtosData;
 
-  buscarProdutos();
-}, []);
+        setProdutos(produtosFiltradosPorEstoque);
+      } catch (err) {
+        console.error('Erro ao carregar produtos:', err);
+        setErro('Erro ao carregar produtos. Tente novamente em instantes.');
+      } finally {
+        setCarregando(false);
+      }
+    };
+
+    const timeoutId = setTimeout(() => {
+      buscarProdutos();
+    }, 400);
+
+    return () => clearTimeout(timeoutId);
+  }, [busca, somenteDisponiveis, ordenacao]);
 
   useEffect(() => {
     const atualizarEstadoLogin = () => {
@@ -59,21 +75,6 @@ export function Produtos() {
       window.removeEventListener('storage', atualizarEstadoLogin);
     };
   }, []);
-
-  const produtosFiltrados = useMemo(() => {
-    const termo = busca.trim().toLowerCase();
-
-    if (!termo) {
-      return produtos;
-    }
-
-    return produtos.filter((produto) => {
-      const nome = produto.name?.toLowerCase() || '';
-      const descricao = produto.description?.toLowerCase() || '';
-
-      return nome.includes(termo) || descricao.includes(termo);
-    });
-  }, [produtos, busca]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -126,6 +127,7 @@ export function Produtos() {
           <div className="mb-4 text-8xl drop-shadow-lg animate-spin-slow">
             🍯
           </div>
+
           <div className="absolute inset-0 rounded-full bg-amber-200/30 blur-xl animate-pulse-gentle" />
         </div>
 
@@ -180,13 +182,17 @@ export function Produtos() {
       <ProdutosHero
         busca={busca}
         isLogged={isLogged}
+        somenteDisponiveis={somenteDisponiveis}
+        ordenacao={ordenacao}
         onBuscaChange={setBusca}
+        onSomenteDisponiveisChange={setSomenteDisponiveis}
+        onOrdenacaoChange={setOrdenacao}
       />
 
       <ProdutosBenefits />
 
       <ProdutosGrid
-        produtos={produtosFiltrados}
+        produtos={produtos}
         isLogged={isLogged}
         onAddToCart={handleAddToCart}
         onClearSearch={() => setBusca('')}

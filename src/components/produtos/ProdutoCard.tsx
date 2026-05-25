@@ -136,7 +136,6 @@ export function ProdutoCard({
             to={`/produtos/${produto.id}`}
             className="group/details inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-white px-5 py-4 font-black text-amber-800 shadow-sm transition duration-300 hover:-translate-y-1 hover:bg-amber-50 hover:shadow-lg dark:border-amber-800 dark:bg-gray-950 dark:text-amber-300 dark:hover:bg-gray-900"
           >
-            <span>👀</span>
             Ver detalhes
             <span className="transition group-hover/details:translate-x-1">
               →
