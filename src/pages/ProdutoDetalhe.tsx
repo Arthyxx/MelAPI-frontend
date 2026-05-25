@@ -1,37 +1,124 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { findProdutoById } from '../services/produtoService';
+import {
+  canReviewProduto,
+  findAvaliacoesByProdutoId,
+} from '../services/avaliacaoProdutoService';
 import type { Produto } from '../types/produto';
+import type {
+  AvaliacaoProduto,
+  CanReviewProduto,
+} from '../types/avaliacaoProduto';
 import { formatCurrency } from '../utils/formatCurrency';
 import { addToCart, getCartItemsCount } from '../utils/cart';
+import { decodeToken } from '../utils/decodeToken';
+import { AvaliacoesProduto } from '../components/produtos/AvaliacoesProduto';
 
 export function ProdutoDetalhe() {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [produto, setProduto] = useState<Produto | null>(null);
+  const [avaliacoes, setAvaliacoes] = useState<AvaliacaoProduto[]>([]);
+  const [canReview, setCanReview] = useState<CanReviewProduto | null>(null);
+
   const [loading, setLoading] = useState(true);
+  const [loadingAvaliacoes, setLoadingAvaliacoes] = useState(true);
+  const [loadingCanReview, setLoadingCanReview] = useState(false);
+
   const [error, setError] = useState('');
   const [cartItemsCount, setCartItemsCount] = useState(getCartItemsCount());
 
-  const isLogged = !!localStorage.getItem('token');
+  const token = localStorage.getItem('token');
+  const isLogged = !!token;
+
+  const decodedToken = token ? decodeToken(token) : null;
+  const clienteId = decodedToken?.id;
+
+  const minhaAvaliacao = useMemo(() => {
+    if (clienteId == null) {
+      return null;
+    }
+
+    return (
+      avaliacoes.find(
+        (avaliacao) => Number(avaliacao.clienteId) === Number(clienteId)
+      ) || null
+    );
+  }, [avaliacoes, clienteId]);
+
+  const reloadCanReview = async () => {
+    if (!id || !token) {
+      setCanReview(null);
+      setLoadingCanReview(false);
+      return;
+    }
+
+    try {
+      setLoadingCanReview(true);
+
+      const canReviewData = await canReviewProduto(id);
+
+      setCanReview(canReviewData);
+    } catch (err: any) {
+      console.error('Erro ao verificar permissão de avaliação:', {
+        statusCode: err.response?.status,
+        data: err.response?.data,
+        message: err.message,
+      });
+
+      setCanReview({
+        canReview: false,
+        message:
+          'Não foi possível verificar se você pode avaliar este produto agora.',
+      });
+    } finally {
+      setLoadingCanReview(false);
+    }
+  };
+
+  const reloadAvaliacoes = async () => {
+    if (!id) return;
+
+    try {
+      setLoadingAvaliacoes(true);
+
+      const avaliacoesData = await findAvaliacoesByProdutoId(id);
+
+      setAvaliacoes(avaliacoesData);
+    } catch (err: any) {
+      console.error('Erro ao recarregar avaliações:', {
+        statusCode: err.response?.status,
+        data: err.response?.data,
+        message: err.message,
+      });
+    } finally {
+      setLoadingAvaliacoes(false);
+    }
+
+    await reloadCanReview();
+  };
 
   useEffect(() => {
-    const fetchProduto = async () => {
+    const fetchProdutoDetalhe = async () => {
       try {
         setError('');
         setLoading(true);
+        setLoadingAvaliacoes(true);
 
         if (!id) {
           navigate('/produtos');
           return;
         }
 
-        const data = await findProdutoById(id);
+        const produtoData = await findProdutoById(id);
+        setProduto(produtoData);
 
-        setProduto(data);
+        const avaliacoesData = await findAvaliacoesByProdutoId(id);
+        setAvaliacoes(avaliacoesData);
       } catch (err: any) {
-        console.error('Erro ao carregar produto:', {
+        console.error('Erro ao carregar detalhe do produto:', {
           statusCode: err.response?.status,
           data: err.response?.data,
           message: err.message,
@@ -40,11 +127,17 @@ export function ProdutoDetalhe() {
         setError('Não foi possível carregar os detalhes deste produto.');
       } finally {
         setLoading(false);
+        setLoadingAvaliacoes(false);
       }
     };
 
-    fetchProduto();
+    fetchProdutoDetalhe();
   }, [id, navigate]);
+
+  useEffect(() => {
+    reloadCanReview();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, token]);
 
   const handleAddToCart = () => {
     if (!produto) return;
@@ -87,6 +180,7 @@ export function ProdutoDetalhe() {
           <div className="mb-4 text-8xl drop-shadow-lg animate-bounce-soft">
             🍯
           </div>
+
           <div className="absolute inset-0 rounded-full bg-amber-200/30 blur-xl animate-pulse-gentle" />
         </div>
 
@@ -138,6 +232,7 @@ export function ProdutoDetalhe() {
                 <h1 className="text-xl font-black tracking-tight md:text-2xl">
                   Apiário Vitória Seven
                 </h1>
+
                 <p className="text-xs text-amber-100 md:text-sm">
                   Detalhes do produto
                 </p>
@@ -199,6 +294,7 @@ export function ProdutoDetalhe() {
                   <div className="text-9xl drop-shadow-2xl animate-bounce-soft">
                     🍯
                   </div>
+
                   <p className="mt-4 rounded-full bg-white/70 px-5 py-2 text-sm font-black text-amber-900 shadow-md backdrop-blur-md">
                     Produto artesanal
                   </p>
@@ -305,9 +401,11 @@ export function ProdutoDetalhe() {
         <section className="mt-8 grid gap-4 md:grid-cols-3">
           <div className="rounded-3xl border border-amber-200 bg-white/85 p-5 shadow-md dark:border-amber-800 dark:bg-gray-900/85">
             <div className="text-3xl">🐝</div>
+
             <h3 className="mt-3 font-black text-amber-900 dark:text-amber-300">
               Origem natural
             </h3>
+
             <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
               Produto selecionado com foco em qualidade e procedência.
             </p>
@@ -315,9 +413,11 @@ export function ProdutoDetalhe() {
 
           <div className="rounded-3xl border border-amber-200 bg-white/85 p-5 shadow-md dark:border-amber-800 dark:bg-gray-900/85">
             <div className="text-3xl">📦</div>
+
             <h3 className="mt-3 font-black text-amber-900 dark:text-amber-300">
               Entrega a combinar
             </h3>
+
             <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
               O vendedor pode confirmar valor e forma de entrega após o pedido.
             </p>
@@ -325,14 +425,26 @@ export function ProdutoDetalhe() {
 
           <div className="rounded-3xl border border-amber-200 bg-white/85 p-5 shadow-md dark:border-amber-800 dark:bg-gray-900/85">
             <div className="text-3xl">⭐</div>
+
             <h3 className="mt-3 font-black text-amber-900 dark:text-amber-300">
-              Avaliações em breve
+              Avaliações reais
             </h3>
+
             <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-              Esta página receberá avaliações dos clientes na próxima etapa.
+              Veja opiniões de clientes sobre este produto.
             </p>
           </div>
         </section>
+        <AvaliacoesProduto
+          produtoId={produto.id}
+          avaliacoes={avaliacoes}
+          loading={loadingAvaliacoes}
+          isLogged={isLogged}
+          minhaAvaliacao={minhaAvaliacao}
+          canReview={canReview}
+          loadingCanReview={loadingCanReview}
+          onSuccess={reloadAvaliacoes}
+        />
       </main>
     </div>
   );
