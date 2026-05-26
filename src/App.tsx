@@ -16,6 +16,7 @@ import { MeusPedidos } from './pages/MeusPedidos';
 import { DetalhePedido } from './pages/DetalhePedido';
 import { Perfil } from './pages/Perfil';
 import { ProdutoDetalhe } from './pages/ProdutoDetalhe';
+import { CategoriaProdutos } from './pages/CategoriaProdutos';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -78,6 +79,8 @@ function App() {
           <Route path="/produtos" element={<Produtos />} />
 
           <Route path="/produtos/:id" element={<ProdutoDetalhe />} />
+
+          <Route path="/categorias/:id" element={<CategoriaProdutos />} />
 
           <Route
             path="/carrinho"

@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { setAuthToken } from '../services/api';
 import { findAllProdutos } from '../services/produtoService';
-import { findAllCategorias } from '../services/categoriaService';
+import {
+  findAllCategorias,
+  findCategoriaById,
+} from '../services/categoriaService';
 
 import { getUserRole } from '../utils/decodeToken';
 import { addToCart, getCartItemsCount } from '../utils/cart';
@@ -14,17 +17,23 @@ import type { Categoria } from '../types/categoria';
 import { StoreHeader } from '../components/layout/StoreHeader';
 import { StoreSidebarMenu } from '../components/layout/StoreSidebarMenu';
 import { StoreFooter } from '../components/layout/StoreFooter';
-
-import { ProdutosHero } from '../components/produtos/ProdutosHero';
-import { ProdutosBenefits } from '../components/produtos/ProdutosBenefits';
 import { ProdutosGrid } from '../components/produtos/ProdutosGrid';
-import { ProdutosInstitutional } from '../components/produtos/ProdutosInstitutional';
-
 import { CartToast } from '../components/ui/CartToast';
 
-export function Produtos() {
+const ordenacoes = [
+  { label: 'Padrão', value: '' },
+  { label: 'Menor preço', value: 'price,asc' },
+  { label: 'Maior preço', value: 'price,desc' },
+  { label: 'Nome A-Z', value: 'name,asc' },
+];
+
+export function CategoriaProdutos() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [categoria, setCategoria] = useState<Categoria | null>(null);
 
   const [primeiroCarregamento, setPrimeiroCarregamento] = useState(true);
   const [filtrando, setFiltrando] = useState(false);
@@ -43,8 +52,8 @@ export function Produtos() {
 
   const toastTimeoutRef = useRef<number | null>(null);
 
-  const navigate = useNavigate();
   const role = getUserRole();
+  const hasFilters = busca || ordenacao || somenteDisponiveis;
 
   useEffect(() => {
     const buscarCategorias = async () => {
@@ -60,7 +69,25 @@ export function Produtos() {
   }, []);
 
   useEffect(() => {
-    const buscarProdutos = async () => {
+    const buscarCategoria = async () => {
+      if (!id) return;
+
+      try {
+        const categoriaData = await findCategoriaById(id);
+        setCategoria(categoriaData);
+      } catch (err) {
+        console.error('Erro ao carregar categoria:', err);
+        setErro('Categoria não encontrada.');
+      }
+    };
+
+    buscarCategoria();
+  }, [id]);
+
+  useEffect(() => {
+    const buscarProdutosDaCategoria = async () => {
+      if (!id) return;
+
       try {
         setErro('');
 
@@ -70,6 +97,7 @@ export function Produtos() {
 
         const produtosData = await findAllProdutos({
           name: busca,
+          categoryId: Number(id),
           active: true,
           sort: ordenacao || undefined,
         });
@@ -80,8 +108,8 @@ export function Produtos() {
 
         setProdutos(produtosFiltradosPorEstoque);
       } catch (err) {
-        console.error('Erro ao carregar produtos:', err);
-        setErro('Erro ao carregar produtos. Tente novamente em instantes.');
+        console.error('Erro ao carregar produtos da categoria:', err);
+        setErro('Erro ao carregar produtos desta categoria.');
       } finally {
         setPrimeiroCarregamento(false);
         setFiltrando(false);
@@ -89,11 +117,11 @@ export function Produtos() {
     };
 
     const timeoutId = window.setTimeout(() => {
-      buscarProdutos();
+      buscarProdutosDaCategoria();
     }, primeiroCarregamento ? 0 : 350);
 
     return () => window.clearTimeout(timeoutId);
-  }, [busca, somenteDisponiveis, ordenacao, primeiroCarregamento]);
+  }, [id, busca, somenteDisponiveis, ordenacao, primeiroCarregamento]);
 
   useEffect(() => {
     const atualizarEstadoLogin = () => {
@@ -186,7 +214,7 @@ export function Produtos() {
         </div>
 
         <p className="mt-4 text-xl font-bold text-amber-700 dark:text-amber-300">
-          Carregando produtos...
+          Carregando categoria...
         </p>
       </div>
     );
@@ -204,13 +232,12 @@ export function Produtos() {
 
           <p className="mt-3 text-gray-600 dark:text-gray-400">{erro}</p>
 
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="mt-6 rounded-2xl bg-amber-600 px-6 py-3 font-bold text-white shadow-lg transition hover:-translate-y-1 hover:bg-amber-700 hover:shadow-xl"
+          <Link
+            to="/produtos"
+            className="mt-6 inline-flex rounded-2xl bg-amber-600 px-6 py-3 font-bold text-white shadow-lg transition hover:-translate-y-1 hover:bg-amber-700 hover:shadow-xl"
           >
-            Tentar novamente
-          </button>
+            Voltar para produtos
+          </Link>
         </div>
       </div>
     );
@@ -240,42 +267,115 @@ export function Produtos() {
         onClose={() => setToastVisible(false)}
       />
 
-      <ProdutosHero
-        busca={busca}
-        isLogged={isLogged}
-        somenteDisponiveis={somenteDisponiveis}
-        ordenacao={ordenacao}
-        onBuscaChange={setBusca}
-        onSomenteDisponiveisChange={setSomenteDisponiveis}
-        onOrdenacaoChange={setOrdenacao}
-      />
+      <main className="container mx-auto px-4 py-10">
+        <section className="rounded-[2rem] border border-amber-200 bg-white/90 p-6 text-center shadow-sm backdrop-blur-xl dark:border-amber-800 dark:bg-gray-900/90 md:p-8">
+  <div className="mx-auto max-w-3xl">
+    <Link
+      to="/produtos"
+      className="inline-flex rounded-full bg-amber-50 px-4 py-2 text-sm font-black text-amber-800 transition hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-300"
+    >
+      ← Todos os produtos
+    </Link>
 
-      <ProdutosBenefits />
+    <p className="mt-6 text-xs font-black uppercase tracking-[0.25em] text-amber-700 dark:text-amber-300">
+      Categoria
+    </p>
 
+    <h1 className="mt-2 text-4xl font-black tracking-tight text-amber-950 dark:text-amber-300 md:text-5xl">
+      {categoria?.name || 'Categoria'}
+    </h1>
+
+    {categoria?.description && (
+      <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+        {categoria.description}
+      </p>
+    )}
+
+    <div className="mx-auto mt-7 max-w-2xl">
       <div className="relative">
-        {filtrando && (
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-center">
-            <div className="mt-4 rounded-full border border-amber-200 bg-white/90 px-4 py-2 text-sm font-black text-amber-800 shadow-lg backdrop-blur-md dark:border-amber-800 dark:bg-gray-950/90 dark:text-amber-300">
-              Atualizando produtos...
-            </div>
-          </div>
-        )}
+        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg">
+          🔎
+        </span>
 
-        <div
-          className={`transition duration-300 ${
-            filtrando ? 'opacity-60' : 'opacity-100'
-          }`}
-        >
-          <ProdutosGrid
-            produtos={produtos}
-            isLogged={isLogged}
-            onAddToCart={handleAddToCart}
-            onClearSearch={handleClearFilters}
-          />
-        </div>
+        <input
+          type="text"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          placeholder="Buscar nesta categoria..."
+          className="h-14 w-full rounded-2xl border border-amber-200 bg-white px-12 text-center font-semibold text-gray-900 shadow-sm outline-none transition placeholder:text-gray-400 focus:border-amber-400 focus:ring-4 focus:ring-amber-100 dark:border-amber-800 dark:bg-gray-950 dark:text-white dark:focus:ring-amber-900"
+        />
       </div>
+    </div>
 
-      <ProdutosInstitutional />
+    <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+      {ordenacoes.map((item) => {
+        const selected = ordenacao === item.value;
+
+        return (
+          <button
+            key={item.value}
+            type="button"
+            onClick={() => setOrdenacao(item.value)}
+            className={`rounded-full px-4 py-2 text-sm font-black transition ${
+              selected
+                ? 'bg-amber-700 text-white shadow-sm'
+                : 'bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-300'
+            }`}
+          >
+            {item.label}
+          </button>
+        );
+      })}
+
+      <button
+        type="button"
+        onClick={() => setSomenteDisponiveis((prev) => !prev)}
+        className={`rounded-full px-4 py-2 text-sm font-black transition ${
+          somenteDisponiveis
+            ? 'bg-amber-950 text-white shadow-sm'
+            : 'bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-300'
+        }`}
+      >
+        Disponíveis
+        {somenteDisponiveis && ' ✓'}
+      </button>
+
+      {hasFilters && (
+        <button
+          type="button"
+          onClick={handleClearFilters}
+          className="rounded-full px-4 py-2 text-sm font-black text-gray-500 transition hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+        >
+          Limpar
+        </button>
+      )}
+    </div>
+  </div>
+</section>
+
+        <div className="relative mt-8">
+          {filtrando && (
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-center">
+              <div className="mt-4 rounded-full border border-amber-200 bg-white/90 px-4 py-2 text-sm font-black text-amber-800 shadow-lg backdrop-blur-md dark:border-amber-800 dark:bg-gray-950/90 dark:text-amber-300">
+                Atualizando produtos...
+              </div>
+            </div>
+          )}
+
+          <div
+            className={`transition duration-300 ${
+              filtrando ? 'opacity-60' : 'opacity-100'
+            }`}
+          >
+            <ProdutosGrid
+              produtos={produtos}
+              isLogged={isLogged}
+              onAddToCart={handleAddToCart}
+              onClearSearch={handleClearFilters}
+            />
+          </div>
+        </div>
+      </main>
 
       <StoreFooter isLogged={isLogged} />
     </div>
