@@ -8,7 +8,6 @@ import {
   type CartItem,
 } from '../utils/cart';
 import { api } from '../services/api';
-import { decodeToken } from '../utils/decodeToken';
 import { formatCurrency } from '../utils/formatCurrency';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 
@@ -33,6 +32,11 @@ export function Carrinho() {
   const totalItems = useMemo(() => {
     return items.reduce((sum, item) => sum + item.quantity, 0);
   }, [items]);
+
+  const subtotal = total;
+  const discount = 0;
+  const shippingLabel = 'A combinar';
+  const finalTotal = subtotal - discount;
 
   const updateQuantity = (productId: number, quantity: number) => {
     const updatedItems = items.map((item) => {
@@ -83,20 +87,12 @@ export function Carrinho() {
         return;
       }
 
-      const decoded = decodeToken(token);
-
-      if (!decoded?.id) {
-        setError('Não foi possível identificar o cliente logado.');
-        return;
-      }
-
       if (items.length === 0) {
         setError('O carrinho está vazio.');
         return;
       }
 
       const payload = {
-        clienteId: decoded.id,
         items: items.map((item) => ({
           produtoId: item.id,
           quantity: item.quantity,
@@ -339,7 +335,7 @@ export function Carrinho() {
                   </h2>
 
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Confira antes de finalizar
+                    Confira os valores antes de finalizar
                   </p>
                 </div>
               </div>
@@ -357,21 +353,45 @@ export function Carrinho() {
 
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-500 dark:text-gray-400">
-                    Entrega
+                    Subtotal
+                  </span>
+
+                  <span className="font-black text-gray-900 dark:text-white">
+                    {formatCurrency(subtotal)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500 dark:text-gray-400">
+                    Frete
                   </span>
 
                   <span className="font-black text-amber-700 dark:text-amber-300">
-                    A combinar
+                    {shippingLabel}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500 dark:text-gray-400">
+                    Desconto
+                  </span>
+
+                  <span className="font-black text-gray-900 dark:text-white">
+                    {formatCurrency(discount)}
                   </span>
                 </div>
 
                 <div className="rounded-3xl bg-amber-50 p-5 dark:bg-amber-950/30">
                   <p className="text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Total
+                    Total dos produtos
                   </p>
 
                   <p className="mt-1 text-4xl font-black text-amber-700 dark:text-amber-300">
-                    {formatCurrency(total)}
+                    {formatCurrency(finalTotal)}
+                  </p>
+
+                  <p className="mt-2 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                    Confira os valores antes de finalizar o pedido.
                   </p>
                 </div>
               </div>
