@@ -12,7 +12,7 @@ interface ProdutosHeroProps {
 }
 
 const ordenacaoOptions = [
-  { value: '', label: 'Ordenar' },
+  { value: '', label: 'Padrão' },
   { value: 'price,asc', label: 'Menor preço' },
   { value: 'price,desc', label: 'Maior preço' },
   { value: 'name,asc', label: 'Nome A-Z' },
@@ -39,12 +39,7 @@ export function ProdutosHero({
     setDropdownOpen(false);
   };
 
-  const clearFilters = () => {
-    onBuscaChange('');
-    onOrdenacaoChange('');
-    onSomenteDisponiveisChange(false);
-    setDropdownOpen(false);
-  };
+  const hasFilters = busca || ordenacao || somenteDisponiveis;
 
   return (
     <section className="relative overflow-visible border-b border-amber-200/60 bg-gradient-to-r from-amber-800 via-yellow-700 to-amber-900 py-24 text-white shadow-xl animate-gradient-shift dark:border-amber-900">
@@ -66,13 +61,11 @@ export function ProdutosHero({
         </h2>
 
         <p className="mx-auto mt-5 max-w-2xl text-base text-amber-50 md:text-lg">
-          Uma loja feita para vender produtos de mel com apresentação
-          profissional, vitrine pública e compra segura para clientes
-          cadastrados.
+          Produtos naturais selecionados com qualidade, sabor e cuidado.
         </p>
 
-        <div className="mx-auto mt-10 max-w-4xl rounded-[2rem] border border-white/15 bg-white/10 p-4 shadow-2xl backdrop-blur-xl md:p-5">
-          <div className="grid gap-3 lg:grid-cols-[1fr_210px_180px]">
+        <div className="mx-auto mt-10 max-w-4xl rounded-[2rem] border border-white/15 bg-white/10 p-3 shadow-2xl backdrop-blur-xl md:p-4">
+          <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto]">
             <div className="relative">
               <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg">
                 🔎
@@ -91,12 +84,9 @@ export function ProdutosHero({
               <button
                 type="button"
                 onClick={() => setDropdownOpen((prev) => !prev)}
-                className="flex h-14 w-full items-center justify-between rounded-2xl border border-white/20 bg-white px-4 font-black text-gray-800 shadow-lg outline-none transition hover:bg-amber-50 focus:ring-4 focus:ring-white/25"
+                className="flex h-14 min-w-[165px] items-center justify-between gap-3 rounded-2xl border border-white/20 bg-white px-4 font-black text-gray-800 shadow-lg outline-none transition hover:bg-amber-50 focus:ring-4 focus:ring-white/25"
               >
-                <span className="flex items-center gap-2">
-                  <span>↕️</span>
-                  {selectedOption.label}
-                </span>
+                <span>{selectedOption.label}</span>
 
                 <span
                   className={`text-xs text-amber-800 transition ${
@@ -124,7 +114,6 @@ export function ProdutosHero({
                         }`}
                       >
                         <span>{option.label}</span>
-
                         {selected && <span>✓</span>}
                       </button>
                     );
@@ -142,24 +131,26 @@ export function ProdutosHero({
                   : 'border border-white/20 bg-white/15 text-white backdrop-blur-md hover:bg-white/20'
               }`}
             >
-              <span className="inline-flex items-center justify-center gap-2 whitespace-nowrap">
-                <span>{somenteDisponiveis ? '✅' : '📦'}</span>
-                Disponíveis
-              </span>
+              {somenteDisponiveis ? 'Disponíveis ✓' : 'Disponíveis'}
             </button>
           </div>
 
-          <div className="mt-4 flex flex-col gap-3 text-sm text-amber-50/90 md:flex-row md:items-center md:justify-between">
-            <p>Busque por nome, preço ou disponibilidade.</p>
-
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="w-fit rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-black text-white transition hover:bg-white/20"
-            >
-              Limpar filtros
-            </button>
-          </div>
+          {hasFilters && (
+            <div className="mt-3 flex justify-center">
+              <button
+                type="button"
+                onClick={() => {
+                  onBuscaChange('');
+                  onOrdenacaoChange('');
+                  onSomenteDisponiveisChange(false);
+                  setDropdownOpen(false);
+                }}
+                className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-black text-white transition hover:bg-white/20"
+              >
+                Limpar filtros
+              </button>
+            </div>
+          )}
         </div>
 
         {!isLogged && (
@@ -168,7 +159,6 @@ export function ProdutosHero({
               to="/cadastro"
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-amber-950 px-7 py-4 font-black text-white shadow-xl transition hover:-translate-y-1 hover:bg-amber-900 hover:shadow-2xl"
             >
-              <span>✨</span>
               Criar conta para comprar
             </Link>
           </div>

@@ -18,7 +18,8 @@ import { CartToast } from '../components/ui/CartToast';
 
 export function Produtos() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
-  const [carregando, setCarregando] = useState(true);
+  const [primeiroCarregamento, setPrimeiroCarregamento] = useState(true);
+  const [filtrando, setFiltrando] = useState(false);
   const [erro, setErro] = useState('');
 
   const [busca, setBusca] = useState('');
@@ -41,7 +42,10 @@ export function Produtos() {
     const buscarProdutos = async () => {
       try {
         setErro('');
-        setCarregando(true);
+
+        if (!primeiroCarregamento) {
+          setFiltrando(true);
+        }
 
         const produtosData = await findAllProdutos({
           name: busca,
@@ -58,16 +62,17 @@ export function Produtos() {
         console.error('Erro ao carregar produtos:', err);
         setErro('Erro ao carregar produtos. Tente novamente em instantes.');
       } finally {
-        setCarregando(false);
+        setPrimeiroCarregamento(false);
+        setFiltrando(false);
       }
     };
 
     const timeoutId = window.setTimeout(() => {
       buscarProdutos();
-    }, 400);
+    }, primeiroCarregamento ? 0 : 350);
 
     return () => window.clearTimeout(timeoutId);
-  }, [busca, somenteDisponiveis, ordenacao]);
+  }, [busca, somenteDisponiveis, ordenacao, primeiroCarregamento]);
 
   useEffect(() => {
     const atualizarEstadoLogin = () => {
@@ -143,7 +148,7 @@ export function Produtos() {
     }
   };
 
-  if (carregando) {
+  if (primeiroCarregamento) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 dark:from-gray-950 dark:via-gray-900 dark:to-amber-950">
         <div className="relative">
@@ -220,12 +225,28 @@ export function Produtos() {
 
       <ProdutosBenefits />
 
-      <ProdutosGrid
-        produtos={produtos}
-        isLogged={isLogged}
-        onAddToCart={handleAddToCart}
-        onClearSearch={() => setBusca('')}
-      />
+      <div className="relative">
+        {filtrando && (
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-center">
+            <div className="mt-4 rounded-full border border-amber-200 bg-white/90 px-4 py-2 text-sm font-black text-amber-800 shadow-lg backdrop-blur-md dark:border-amber-800 dark:bg-gray-950/90 dark:text-amber-300">
+              Atualizando produtos...
+            </div>
+          </div>
+        )}
+
+        <div
+          className={`transition duration-300 ${
+            filtrando ? 'opacity-60' : 'opacity-100'
+          }`}
+        >
+          <ProdutosGrid
+            produtos={produtos}
+            isLogged={isLogged}
+            onAddToCart={handleAddToCart}
+            onClearSearch={() => setBusca('')}
+          />
+        </div>
+      </div>
 
       <ProdutosInstitutional />
 
