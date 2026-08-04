@@ -82,7 +82,7 @@ export function ClientesAdmin() {
 
         setSuccess('Cliente atualizado com sucesso.');
       } else {
-        await api.post('/clientes', {
+        await api.post('/clientes/admin', {
           name: formData.name.trim(),
           email: formData.email.trim(),
           password: formData.password,
