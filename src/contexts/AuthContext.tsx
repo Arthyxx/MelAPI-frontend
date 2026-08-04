@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -159,6 +160,26 @@ export function AuthProvider({
     setSession(
       clearStoredSession(),
     );
+  }, []);
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setSession(
+        clearStoredSession(),
+      );
+    };
+
+    window.addEventListener(
+      'auth:unauthorized',
+      handleUnauthorized,
+    );
+
+    return () => {
+      window.removeEventListener(
+        'auth:unauthorized',
+        handleUnauthorized,
+      );
+    };
   }, []);
 
   const contextValue =
