@@ -59,15 +59,14 @@ function createUserFromToken(
   decodedToken: TokenPayload,
 ): AuthUser {
   return {
-    id: decodedToken.id,
-    email: decodedToken.sub,
+    id: decodedToken.sub,
+    email: decodedToken.email,
     role: decodedToken.role,
   };
 }
 
 function getStoredSession(): AuthSession {
-  const storedToken =
-    localStorage.getItem('token');
+  const storedToken = localStorage.getItem('token');
 
   if (!storedToken) {
     setAuthToken(null);
@@ -78,8 +77,7 @@ function getStoredSession(): AuthSession {
     };
   }
 
-  const decodedToken =
-    decodeToken(storedToken);
+  const decodedToken = decodeToken(storedToken);
 
   if (!decodedToken) {
     return clearStoredSession();
@@ -96,9 +94,7 @@ function getStoredSession(): AuthSession {
 
   return {
     token: storedToken,
-    user: createUserFromToken(
-      decodedToken,
-    ),
+    user: createUserFromToken(decodedToken),
   };
 }
 
@@ -106,9 +102,7 @@ export function AuthProvider({
   children,
 }: AuthProviderProps) {
   const [session, setSession] =
-    useState<AuthSession>(
-      getStoredSession,
-    );
+    useState<AuthSession>(getStoredSession);
 
   const signIn = useCallback(
     (newToken: string) => {
@@ -132,9 +126,7 @@ export function AuthProvider({
       }
 
       const authenticatedUser =
-        createUserFromToken(
-          decodedToken,
-        );
+        createUserFromToken(decodedToken);
 
       localStorage.setItem(
         'token',
@@ -157,16 +149,12 @@ export function AuthProvider({
   );
 
   const signOut = useCallback(() => {
-    setSession(
-      clearStoredSession(),
-    );
+    setSession(clearStoredSession());
   }, []);
 
   useEffect(() => {
     const handleUnauthorized = () => {
-      setSession(
-        clearStoredSession(),
-      );
+      setSession(clearStoredSession());
     };
 
     window.addEventListener(
@@ -188,12 +176,10 @@ export function AuthProvider({
         user: session.user,
         token: session.token,
         isAuthenticated: Boolean(
-          session.token &&
-            session.user,
+          session.token && session.user,
         ),
         isAdmin:
-          session.user?.role ===
-          'ADMIN',
+          session.user?.role === 'ADMIN',
         signIn,
         signOut,
       }),

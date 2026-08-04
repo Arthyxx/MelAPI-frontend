@@ -3,9 +3,10 @@ import { jwtDecode } from 'jwt-decode';
 export type UserRole = 'ADMIN' | 'CLIENTE';
 
 export interface TokenPayload {
-  sub: string;
-  id: number;
+  sub: number;
+  email: string;
   role: UserRole;
+  iat?: number;
   exp: number;
   iss?: string;
 }
