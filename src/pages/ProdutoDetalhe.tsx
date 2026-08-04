@@ -1,68 +1,110 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { findProdutoById } from '../services/produtoService';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import type { AxiosError } from 'axios';
+import {
+  useNavigate,
+  useParams,
+} from 'react-router-dom';
+
+import { AvaliacoesProduto } from '../components/produtos/AvaliacoesProduto';
+import { ProdutoDetalheError } from '../components/produtos/detalhe/ProdutoDetalheError';
+import { ProdutoDetalheHeader } from '../components/produtos/detalhe/ProdutoDetalheHeader';
+import { ProdutoDetalheInfoCards } from '../components/produtos/detalhe/ProdutoDetalheInfoCards';
+import { ProdutoDetalheLoading } from '../components/produtos/detalhe/ProdutoDetalheLoading';
+import { ProdutoDetalheMain } from '../components/produtos/detalhe/ProdutoDetalheMain';
+import { CartToast } from '../components/ui/CartToast';
+
+import { useAuth } from '../contexts/AuthContext';
+
 import {
   canReviewProduto,
   findAvaliacoesByProdutoId,
 } from '../services/avaliacaoProdutoService';
-import type { Produto } from '../types/produto';
+import { findProdutoById } from '../services/produtoService';
+
 import type {
   AvaliacaoProduto,
   CanReviewProduto,
 } from '../types/avaliacaoProduto';
-import { addToCart, getCartItemsCount } from '../utils/cart';
-import { decodeToken } from '../utils/decodeToken';
+import type { Produto } from '../types/produto';
 
-import { ProdutoDetalheHeader } from '../components/produtos/detalhe/ProdutoDetalheHeader';
-import { ProdutoDetalheMain } from '../components/produtos/detalhe/ProdutoDetalheMain';
-import { ProdutoDetalheInfoCards } from '../components/produtos/detalhe/ProdutoDetalheInfoCards';
-import { ProdutoDetalheLoading } from '../components/produtos/detalhe/ProdutoDetalheLoading';
-import { ProdutoDetalheError } from '../components/produtos/detalhe/ProdutoDetalheError';
-import { AvaliacoesProduto } from '../components/produtos/AvaliacoesProduto';
-import { CartToast } from '../components/ui/CartToast';
+import {
+  addToCart,
+  getCartItemsCount,
+} from '../utils/cart';
+
+interface ApiErrorResponse {
+  message?: string | string[];
+  error?: string;
+}
 
 export function ProdutoDetalhe() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [produto, setProduto] = useState<Produto | null>(null);
-  const [avaliacoes, setAvaliacoes] = useState<AvaliacaoProduto[]>([]);
-  const [canReview, setCanReview] = useState<CanReviewProduto | null>(null);
+  const {
+    user,
+    isAuthenticated,
+  } = useAuth();
+
+  const [produto, setProduto] =
+    useState<Produto | null>(null);
+
+  const [avaliacoes, setAvaliacoes] = useState<
+    AvaliacaoProduto[]
+  >([]);
+
+  const [canReview, setCanReview] =
+    useState<CanReviewProduto | null>(null);
 
   const [loading, setLoading] = useState(true);
-  const [loadingAvaliacoes, setLoadingAvaliacoes] = useState(true);
-  const [loadingCanReview, setLoadingCanReview] = useState(false);
+  const [loadingAvaliacoes, setLoadingAvaliacoes] =
+    useState(true);
+  const [loadingCanReview, setLoadingCanReview] =
+    useState(false);
 
   const [error, setError] = useState('');
-  const [cartItemsCount, setCartItemsCount] = useState(getCartItemsCount());
 
-  const [toastVisible, setToastVisible] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
+  const [cartItemsCount, setCartItemsCount] = useState(
+    getCartItemsCount(),
+  );
 
-  const toastTimeoutRef = useRef<number | null>(null);
+  const [toastVisible, setToastVisible] =
+    useState(false);
+  const [toastMessage, setToastMessage] =
+    useState('');
 
-  const token = localStorage.getItem('token');
-  const isLogged = !!token;
+  const toastTimeoutRef = useRef<number | null>(
+    null,
+  );
 
-  const decodedToken = token ? decodeToken(token) : null;
-  const clienteId = decodedToken?.id;
+  const clienteId = user?.id;
 
   const minhaAvaliacao = useMemo(() => {
-    if (clienteId == null) {
+    if (clienteId === undefined) {
       return null;
     }
 
     return (
       avaliacoes.find(
-        (avaliacao) => Number(avaliacao.clienteId) === Number(clienteId)
-      ) || null
+        (avaliacao) =>
+          Number(avaliacao.clienteId) ===
+          Number(clienteId),
+      ) ?? null
     );
   }, [avaliacoes, clienteId]);
 
   useEffect(() => {
     return () => {
-      if (toastTimeoutRef.current) {
-        window.clearTimeout(toastTimeoutRef.current);
+      if (toastTimeoutRef.current !== null) {
+        window.clearTimeout(
+          toastTimeoutRef.current,
+        );
       }
     };
   }, []);
@@ -71,17 +113,22 @@ export function ProdutoDetalhe() {
     setToastMessage(message);
     setToastVisible(true);
 
-    if (toastTimeoutRef.current) {
-      window.clearTimeout(toastTimeoutRef.current);
+    if (toastTimeoutRef.current !== null) {
+      window.clearTimeout(
+        toastTimeoutRef.current,
+      );
     }
 
-    toastTimeoutRef.current = window.setTimeout(() => {
-      setToastVisible(false);
-    }, 3000);
+    toastTimeoutRef.current = window.setTimeout(
+      () => {
+        setToastVisible(false);
+      },
+      3000,
+    );
   };
 
-  const reloadCanReview = async () => {
-    if (!id || !token) {
+  const reloadCanReview = useCallback(async () => {
+    if (!id || !isAuthenticated) {
       setCanReview(null);
       setLoadingCanReview(false);
       return;
@@ -90,15 +137,25 @@ export function ProdutoDetalhe() {
     try {
       setLoadingCanReview(true);
 
-      const canReviewData = await canReviewProduto(id);
+      const canReviewData =
+        await canReviewProduto(id);
 
       setCanReview(canReviewData);
-    } catch (err: any) {
-      console.error('Erro ao verificar permissão de avaliação:', {
-        statusCode: err.response?.status,
-        data: err.response?.data,
-        message: err.message,
-      });
+    } catch (error) {
+      const axiosError =
+        error as AxiosError<ApiErrorResponse>;
+
+      console.error(
+        'Erro ao verificar permissão de avaliação:',
+        {
+          statusCode:
+            axiosError.response?.status,
+          data:
+            axiosError.response?.data,
+          message:
+            axiosError.message,
+        },
+      );
 
       setCanReview({
         canReview: false,
@@ -108,73 +165,105 @@ export function ProdutoDetalhe() {
     } finally {
       setLoadingCanReview(false);
     }
-  };
+  }, [id, isAuthenticated]);
 
-  const reloadAvaliacoes = async () => {
-    if (!id) return;
+  const reloadAvaliacoes =
+    useCallback(async () => {
+      if (!id) {
+        return;
+      }
 
-    try {
-      setLoadingAvaliacoes(true);
+      try {
+        setLoadingAvaliacoes(true);
 
-      const avaliacoesData = await findAvaliacoesByProdutoId(id);
+        const avaliacoesData =
+          await findAvaliacoesByProdutoId(id);
 
-      setAvaliacoes(avaliacoesData);
-    } catch (err: any) {
-      console.error('Erro ao recarregar avaliações:', {
-        statusCode: err.response?.status,
-        data: err.response?.data,
-        message: err.message,
-      });
-    } finally {
-      setLoadingAvaliacoes(false);
-    }
+        setAvaliacoes(avaliacoesData);
+      } catch (error) {
+        const axiosError =
+          error as AxiosError<ApiErrorResponse>;
 
-    await reloadCanReview();
-  };
+        console.error(
+          'Erro ao recarregar avaliações:',
+          {
+            statusCode:
+              axiosError.response?.status,
+            data:
+              axiosError.response?.data,
+            message:
+              axiosError.message,
+          },
+        );
+      } finally {
+        setLoadingAvaliacoes(false);
+      }
+
+      await reloadCanReview();
+    }, [id, reloadCanReview]);
 
   useEffect(() => {
     const fetchProdutoDetalhe = async () => {
+      if (!id) {
+        navigate('/produtos', {
+          replace: true,
+        });
+
+        return;
+      }
+
       try {
         setError('');
         setLoading(true);
         setLoadingAvaliacoes(true);
 
-        if (!id) {
-          navigate('/produtos');
-          return;
-        }
+        const produtoData =
+          await findProdutoById(id);
 
-        const produtoData = await findProdutoById(id);
         setProduto(produtoData);
 
-        const avaliacoesData = await findAvaliacoesByProdutoId(id);
-        setAvaliacoes(avaliacoesData);
-      } catch (err: any) {
-        console.error('Erro ao carregar detalhe do produto:', {
-          statusCode: err.response?.status,
-          data: err.response?.data,
-          message: err.message,
-        });
+        const avaliacoesData =
+          await findAvaliacoesByProdutoId(id);
 
-        setError('Não foi possível carregar os detalhes deste produto.');
+        setAvaliacoes(avaliacoesData);
+      } catch (error) {
+        const axiosError =
+          error as AxiosError<ApiErrorResponse>;
+
+        console.error(
+          'Erro ao carregar detalhe do produto:',
+          {
+            statusCode:
+              axiosError.response?.status,
+            data:
+              axiosError.response?.data,
+            message:
+              axiosError.message,
+          },
+        );
+
+        setError(
+          'Não foi possível carregar os detalhes deste produto.',
+        );
       } finally {
         setLoading(false);
         setLoadingAvaliacoes(false);
       }
     };
 
-    fetchProdutoDetalhe();
+    void fetchProdutoDetalhe();
   }, [id, navigate]);
 
   useEffect(() => {
-    reloadCanReview();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, token]);
+    void reloadCanReview();
+  }, [reloadCanReview]);
 
   const handleAddToCart = () => {
-    if (!produto) return;
+    if (!produto) {
+      return;
+    }
 
-    if (!isLogged) {
+    if (!isAuthenticated) {
       navigate('/login');
       return;
     }
@@ -184,24 +273,31 @@ export function ProdutoDetalhe() {
         id: produto.id,
         name: produto.name,
         price: produto.price,
-        stockQuantity: produto.stockQuantity,
+        stockQuantity:
+          produto.stockQuantity,
         imageUrl: produto.imageUrl,
       });
 
       const totalItems = updatedCart.reduce(
-        (total, item) => total + item.quantity,
-        0
+        (total, item) =>
+          total + item.quantity,
+        0,
       );
 
       setCartItemsCount(totalItems);
 
-      showCartToast(`${produto.name} foi adicionado ao carrinho.`);
+      showCartToast(
+        `${produto.name} foi adicionado ao carrinho.`,
+      );
     } catch (error) {
       if (error instanceof Error) {
         alert(error.message);
-      } else {
-        alert('Erro ao adicionar produto ao carrinho.');
+        return;
       }
+
+      alert(
+        'Erro ao adicionar produto ao carrinho.',
+      );
     }
   };
 
@@ -210,26 +306,32 @@ export function ProdutoDetalhe() {
   }
 
   if (error || !produto) {
-    return <ProdutoDetalheError message={error} />;
+    return (
+      <ProdutoDetalheError
+        message={error}
+      />
+    );
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 dark:from-gray-950 dark:via-gray-900 dark:to-amber-950">
       <ProdutoDetalheHeader
-        isLogged={isLogged}
+        isLogged={isAuthenticated}
         cartItemsCount={cartItemsCount}
       />
 
       <CartToast
         message={toastMessage}
         visible={toastVisible}
-        onClose={() => setToastVisible(false)}
+        onClose={() =>
+          setToastVisible(false)
+        }
       />
 
       <main className="container mx-auto px-4 py-10">
         <ProdutoDetalheMain
           produto={produto}
-          isLogged={isLogged}
+          isLogged={isAuthenticated}
           onAddToCart={handleAddToCart}
         />
 
@@ -239,11 +341,15 @@ export function ProdutoDetalhe() {
           produtoId={produto.id}
           avaliacoes={avaliacoes}
           loading={loadingAvaliacoes}
-          isLogged={isLogged}
+          isLogged={isAuthenticated}
           minhaAvaliacao={minhaAvaliacao}
           canReview={canReview}
-          loadingCanReview={loadingCanReview}
-          onSuccess={reloadAvaliacoes}
+          loadingCanReview={
+            loadingCanReview
+          }
+          onSuccess={
+            reloadAvaliacoes
+          }
         />
       </main>
     </div>

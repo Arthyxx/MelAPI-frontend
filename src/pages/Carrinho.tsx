@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { AxiosError } from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
+
+import { ConfirmModal } from '../components/ui/ConfirmModal';
+import { useAuth } from '../contexts/AuthContext';
+import { api } from '../services/api';
+
 import {
   clearCart,
   getCart,
@@ -7,30 +13,43 @@ import {
   saveCart,
   type CartItem,
 } from '../utils/cart';
-import { api } from '../services/api';
 import { formatCurrency } from '../utils/formatCurrency';
-import { ConfirmModal } from '../components/ui/ConfirmModal';
+
+interface ApiErrorResponse {
+  message?: string | string[];
+  error?: string;
+}
 
 export function Carrinho() {
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [clearCartModalOpen, setClearCartModalOpen] = useState(false);
+  const [clearCartModalOpen, setClearCartModalOpen] =
+    useState(false);
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     setItems(getCart());
   }, []);
 
   const total = useMemo(() => {
-    return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    return items.reduce(
+      (sum, item) =>
+        sum + item.price * item.quantity,
+      0,
+    );
   }, [items]);
 
   const totalItems = useMemo(() => {
-    return items.reduce((sum, item) => sum + item.quantity, 0);
+    return items.reduce(
+      (sum, item) =>
+        sum + item.quantity,
+      0,
+    );
   }, [items]);
 
   const subtotal = total;
@@ -38,11 +57,22 @@ export function Carrinho() {
   const shippingLabel = 'A combinar';
   const finalTotal = subtotal - discount;
 
-  const updateQuantity = (productId: number, quantity: number) => {
+  const updateQuantity = (
+    productId: number,
+    quantity: number,
+  ) => {
     const updatedItems = items.map((item) => {
-      if (item.id !== productId) return item;
+      if (item.id !== productId) {
+        return item;
+      }
 
-      const safeQuantity = Math.max(1, Math.min(quantity, item.stockQuantity));
+      const safeQuantity = Math.max(
+        1,
+        Math.min(
+          quantity,
+          item.stockQuantity,
+        ),
+      );
 
       return {
         ...item,
@@ -55,12 +85,16 @@ export function Carrinho() {
   };
 
   const handleRemove = (productId: number) => {
-    const updatedItems = removeFromCart(productId);
+    const updatedItems =
+      removeFromCart(productId);
+
     setItems(updatedItems);
   };
 
   const handleOpenClearCartModal = () => {
-    if (items.length === 0) return;
+    if (items.length === 0) {
+      return;
+    }
 
     setError('');
     setSuccess('');
@@ -71,26 +105,33 @@ export function Carrinho() {
     clearCart();
     setItems([]);
     setClearCartModalOpen(false);
-    setSuccess('Carrinho limpo com sucesso.');
+    setSuccess(
+      'Carrinho limpo com sucesso.',
+    );
   };
 
   const handleFinishOrder = async () => {
     try {
       setError('');
       setSuccess('');
-      setLoading(true);
 
-      const token = localStorage.getItem('token');
+      if (!isAuthenticated) {
+        navigate('/login', {
+          replace: true,
+        });
 
-      if (!token) {
-        navigate('/login');
         return;
       }
 
       if (items.length === 0) {
-        setError('O carrinho está vazio.');
+        setError(
+          'O carrinho está vazio.',
+        );
+
         return;
       }
+
+      setLoading(true);
 
       const payload = {
         items: items.map((item) => ({
@@ -104,22 +145,43 @@ export function Carrinho() {
       clearCart();
       setItems([]);
 
-      setSuccess('Pedido criado com sucesso!');
+      setSuccess(
+        'Pedido criado com sucesso!',
+      );
 
       window.setTimeout(() => {
-        navigate('/meus-pedidos');
+        navigate('/meus-pedidos', {
+          replace: true,
+        });
       }, 1200);
-    } catch (err: any) {
-      console.error('Erro ao finalizar pedido:', {
-        statusCode: err.response?.status,
-        data: err.response?.data,
-        message: err.message,
-      });
+    } catch (error) {
+      const axiosError =
+        error as AxiosError<ApiErrorResponse>;
+
+      const apiMessage =
+        axiosError.response?.data?.message;
+
+      console.error(
+        'Erro ao finalizar pedido:',
+        {
+          statusCode:
+            axiosError.response?.status,
+          data:
+            axiosError.response?.data,
+          message:
+            axiosError.message,
+        },
+      );
+
+      if (Array.isArray(apiMessage)) {
+        setError(apiMessage.join(' '));
+        return;
+      }
 
       setError(
-        err.response?.data?.message ||
-          err.response?.data?.error ||
-          'Erro ao finalizar pedido. Verifique o estoque dos produtos e tente novamente.'
+        apiMessage ||
+          axiosError.response?.data?.error ||
+          'Erro ao finalizar pedido. Verifique o estoque dos produtos e tente novamente.',
       );
     } finally {
       setLoading(false);
@@ -133,9 +195,14 @@ export function Carrinho() {
       <header className="sticky top-0 z-30 border-b border-amber-300/40 bg-amber-950/90 text-white shadow-xl backdrop-blur-md dark:bg-gray-950/90">
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <Link to="/produtos" className="flex items-center gap-3">
+            <Link
+              to="/produtos"
+              className="flex items-center gap-3"
+            >
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-yellow-400 to-amber-600 shadow-inner">
-                <span className="text-3xl">🛒</span>
+                <span className="text-3xl">
+                  🛒
+                </span>
               </div>
 
               <div>
@@ -144,7 +211,8 @@ export function Carrinho() {
                 </h1>
 
                 <p className="text-sm text-amber-100">
-                  Revise seus produtos antes de finalizar o pedido
+                  Revise seus produtos antes de
+                  finalizar o pedido
                 </p>
               </div>
             </Link>
@@ -194,7 +262,8 @@ export function Carrinho() {
             </h2>
 
             <p className="mx-auto mt-3 max-w-md text-gray-600 dark:text-gray-400">
-              Adicione produtos de mel à sua cesta antes de finalizar o pedido.
+              Adicione produtos de mel à sua cesta
+              antes de finalizar o pedido.
             </p>
 
             <Link
@@ -215,14 +284,19 @@ export function Carrinho() {
                   </h2>
 
                   <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    {totalItems} {totalItems === 1 ? 'item' : 'itens'} no
-                    carrinho
+                    {totalItems}{' '}
+                    {totalItems === 1
+                      ? 'item'
+                      : 'itens'}{' '}
+                    no carrinho
                   </p>
                 </div>
 
                 <button
                   type="button"
-                  onClick={handleOpenClearCartModal}
+                  onClick={
+                    handleOpenClearCartModal
+                  }
                   className="w-fit rounded-2xl border border-red-200 bg-white px-5 py-3 text-sm font-black text-red-600 shadow-sm transition hover:-translate-y-0.5 hover:bg-red-50 hover:shadow-md dark:border-red-900 dark:bg-gray-950 dark:text-red-300 dark:hover:bg-red-950/30"
                 >
                   Limpar carrinho
@@ -243,7 +317,9 @@ export function Carrinho() {
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <span className="text-7xl drop-shadow-md">🍯</span>
+                        <span className="text-7xl drop-shadow-md">
+                          🍯
+                        </span>
                       )}
                     </div>
 
@@ -255,13 +331,18 @@ export function Carrinho() {
                           </h3>
 
                           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                            Estoque disponível: {item.stockQuantity}
+                            Estoque disponível:{' '}
+                            {item.stockQuantity}
                           </p>
                         </div>
 
                         <button
                           type="button"
-                          onClick={() => handleRemove(item.id)}
+                          onClick={() =>
+                            handleRemove(
+                              item.id,
+                            )
+                          }
                           className="w-fit rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-black text-red-600 shadow-sm transition hover:-translate-y-0.5 hover:bg-red-50 hover:shadow-md dark:border-red-900 dark:bg-gray-950 dark:text-red-300 dark:hover:bg-red-950/30"
                         >
                           Remover
@@ -275,7 +356,9 @@ export function Carrinho() {
                           </p>
 
                           <p className="text-2xl font-black text-amber-700 dark:text-amber-300">
-                            {formatCurrency(item.price)}
+                            {formatCurrency(
+                              item.price,
+                            )}
                           </p>
                         </div>
 
@@ -283,9 +366,14 @@ export function Carrinho() {
                           <button
                             type="button"
                             onClick={() =>
-                              updateQuantity(item.id, item.quantity - 1)
+                              updateQuantity(
+                                item.id,
+                                item.quantity - 1,
+                              )
                             }
-                            disabled={item.quantity <= 1}
+                            disabled={
+                              item.quantity <= 1
+                            }
                             className="flex h-11 w-11 items-center justify-center rounded-2xl border border-amber-200 bg-white text-xl font-black text-amber-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-amber-800 dark:bg-gray-950 dark:text-amber-300"
                           >
                             −
@@ -298,9 +386,15 @@ export function Carrinho() {
                           <button
                             type="button"
                             onClick={() =>
-                              updateQuantity(item.id, item.quantity + 1)
+                              updateQuantity(
+                                item.id,
+                                item.quantity + 1,
+                              )
                             }
-                            disabled={item.quantity >= item.stockQuantity}
+                            disabled={
+                              item.quantity >=
+                              item.stockQuantity
+                            }
                             className="flex h-11 w-11 items-center justify-center rounded-2xl border border-amber-200 bg-white text-xl font-black text-amber-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-amber-800 dark:bg-gray-950 dark:text-amber-300"
                           >
                             +
@@ -313,7 +407,10 @@ export function Carrinho() {
                           </p>
 
                           <p className="text-2xl font-black text-amber-700 dark:text-amber-300">
-                            {formatCurrency(item.price * item.quantity)}
+                            {formatCurrency(
+                              item.price *
+                                item.quantity,
+                            )}
                           </p>
                         </div>
                       </div>
@@ -335,7 +432,8 @@ export function Carrinho() {
                   </h2>
 
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Confira os valores antes de finalizar
+                    Confira os valores antes de
+                    finalizar
                   </p>
                 </div>
               </div>
@@ -347,7 +445,10 @@ export function Carrinho() {
                   </span>
 
                   <span className="font-black text-gray-900 dark:text-white">
-                    {totalItems} {totalItems === 1 ? 'item' : 'itens'}
+                    {totalItems}{' '}
+                    {totalItems === 1
+                      ? 'item'
+                      : 'itens'}
                   </span>
                 </div>
 
@@ -357,7 +458,9 @@ export function Carrinho() {
                   </span>
 
                   <span className="font-black text-gray-900 dark:text-white">
-                    {formatCurrency(subtotal)}
+                    {formatCurrency(
+                      subtotal,
+                    )}
                   </span>
                 </div>
 
@@ -377,7 +480,9 @@ export function Carrinho() {
                   </span>
 
                   <span className="font-black text-gray-900 dark:text-white">
-                    {formatCurrency(discount)}
+                    {formatCurrency(
+                      discount,
+                    )}
                   </span>
                 </div>
 
@@ -387,11 +492,14 @@ export function Carrinho() {
                   </p>
 
                   <p className="mt-1 text-4xl font-black text-amber-700 dark:text-amber-300">
-                    {formatCurrency(finalTotal)}
+                    {formatCurrency(
+                      finalTotal,
+                    )}
                   </p>
 
                   <p className="mt-2 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-                    Confira os valores antes de finalizar o pedido.
+                    Confira os valores antes de
+                    finalizar o pedido.
                   </p>
                 </div>
               </div>
@@ -399,7 +507,9 @@ export function Carrinho() {
               <button
                 type="button"
                 onClick={handleFinishOrder}
-                disabled={loading || isEmpty}
+                disabled={
+                  loading || isEmpty
+                }
                 className="group relative mt-6 w-full overflow-hidden rounded-2xl bg-gradient-to-r from-amber-600 via-yellow-600 to-amber-700 px-6 py-4 font-black text-white shadow-xl transition hover:-translate-y-1 hover:shadow-2xl disabled:cursor-not-allowed disabled:opacity-70"
               >
                 <span className="absolute inset-0 translate-x-[-100%] bg-white/20 transition duration-700 group-hover:translate-x-[100%]" />
@@ -422,8 +532,8 @@ export function Carrinho() {
               </button>
 
               <p className="mt-4 text-center text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-                Após finalizar, o pedido aparecerá em “Meus pedidos” para
-                acompanhamento.
+                Após finalizar, o pedido aparecerá
+                em “Meus pedidos” para acompanhamento.
               </p>
             </aside>
           </div>
@@ -433,12 +543,16 @@ export function Carrinho() {
       <ConfirmModal
         open={clearCartModalOpen}
         title="Limpar carrinho?"
-        description="Todos os produtos adicionados serão removidos da sua cesta. Essa ação não finaliza pedido nenhum, só limpa sua seleção atual."
+        description="Todos os produtos adicionados serão removidos da sua cesta. Essa ação não finaliza pedido nenhum, apenas limpa sua seleção atual."
         confirmText="Sim, limpar"
         cancelText="Manter produtos"
         variant="warning"
-        onConfirm={handleConfirmClearCart}
-        onCancel={() => setClearCartModalOpen(false)}
+        onConfirm={
+          handleConfirmClearCart
+        }
+        onCancel={() =>
+          setClearCartModalOpen(false)
+        }
       />
     </div>
   );

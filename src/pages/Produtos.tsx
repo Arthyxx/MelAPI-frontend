@@ -1,41 +1,41 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { setAuthToken } from '../services/api';
-import { findAllProdutos } from '../services/produtoService';
-import { findAllCategorias } from '../services/categoriaService';
-
-import { getUserRole } from '../utils/decodeToken';
-import { addToCart, getCartItemsCount } from '../utils/cart';
-
-import type { Produto } from '../types/produto';
-import type { Categoria } from '../types/categoria';
-
+import { StoreFooter } from '../components/layout/StoreFooter';
 import { StoreHeader } from '../components/layout/StoreHeader';
 import { StoreSidebarMenu } from '../components/layout/StoreSidebarMenu';
-import { StoreFooter } from '../components/layout/StoreFooter';
-
-import { ProdutosHero } from '../components/produtos/ProdutosHero';
 import { ProdutosBenefits } from '../components/produtos/ProdutosBenefits';
 import { ProdutosGrid } from '../components/produtos/ProdutosGrid';
+import { ProdutosHero } from '../components/produtos/ProdutosHero';
 import { ProdutosInstitutional } from '../components/produtos/ProdutosInstitutional';
-
 import { CartToast } from '../components/ui/CartToast';
+
+import { useAuth } from '../contexts/AuthContext';
+import { findAllCategorias } from '../services/categoriaService';
+import { findAllProdutos } from '../services/produtoService';
+
+import type { Categoria } from '../types/categoria';
+import type { Produto } from '../types/produto';
+
+import { addToCart, getCartItemsCount } from '../utils/cart';
 
 export function Produtos() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
 
-  const [primeiroCarregamento, setPrimeiroCarregamento] = useState(true);
+  const [primeiroCarregamento, setPrimeiroCarregamento] =
+    useState(true);
   const [filtrando, setFiltrando] = useState(false);
   const [erro, setErro] = useState('');
 
   const [busca, setBusca] = useState('');
-  const [somenteDisponiveis, setSomenteDisponiveis] = useState(false);
+  const [somenteDisponiveis, setSomenteDisponiveis] =
+    useState(false);
   const [ordenacao, setOrdenacao] = useState('');
 
-  const [cartItemsCount, setCartItemsCount] = useState(getCartItemsCount());
-  const [isLogged, setIsLogged] = useState(!!localStorage.getItem('token'));
+  const [cartItemsCount, setCartItemsCount] = useState(
+    getCartItemsCount(),
+  );
   const [menuOpen, setMenuOpen] = useState(false);
 
   const [toastVisible, setToastVisible] = useState(false);
@@ -44,19 +44,27 @@ export function Produtos() {
   const toastTimeoutRef = useRef<number | null>(null);
 
   const navigate = useNavigate();
-  const role = getUserRole();
+
+  const {
+    user,
+    isAuthenticated,
+    signOut,
+  } = useAuth();
 
   useEffect(() => {
     const buscarCategorias = async () => {
       try {
         const categoriasData = await findAllCategorias();
         setCategorias(categoriasData);
-      } catch (err) {
-        console.error('Erro ao carregar categorias:', err);
+      } catch (error) {
+        console.error(
+          'Erro ao carregar categorias:',
+          error,
+        );
       }
     };
 
-    buscarCategorias();
+    void buscarCategorias();
   }, []);
 
   useEffect(() => {
@@ -74,40 +82,67 @@ export function Produtos() {
           sort: ordenacao || undefined,
         });
 
-        const produtosFiltradosPorEstoque = somenteDisponiveis
-          ? produtosData.filter((produto) => produto.stockQuantity > 0)
-          : produtosData;
+        const produtosFiltradosPorEstoque =
+          somenteDisponiveis
+            ? produtosData.filter(
+                (produto) =>
+                  produto.stockQuantity > 0,
+              )
+            : produtosData;
 
         setProdutos(produtosFiltradosPorEstoque);
-      } catch (err) {
-        console.error('Erro ao carregar produtos:', err);
-        setErro('Erro ao carregar produtos. Tente novamente em instantes.');
+      } catch (error) {
+        console.error(
+          'Erro ao carregar produtos:',
+          error,
+        );
+
+        setErro(
+          'Erro ao carregar produtos. Tente novamente em instantes.',
+        );
       } finally {
         setPrimeiroCarregamento(false);
         setFiltrando(false);
       }
     };
 
-    const timeoutId = window.setTimeout(() => {
-      buscarProdutos();
-    }, primeiroCarregamento ? 0 : 350);
+    const timeoutId = window.setTimeout(
+      () => {
+        void buscarProdutos();
+      },
+      primeiroCarregamento ? 0 : 350,
+    );
 
-    return () => window.clearTimeout(timeoutId);
-  }, [busca, somenteDisponiveis, ordenacao, primeiroCarregamento]);
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    busca,
+    somenteDisponiveis,
+    ordenacao,
+    primeiroCarregamento,
+  ]);
 
   useEffect(() => {
-    const atualizarEstadoLogin = () => {
-      setIsLogged(!!localStorage.getItem('token'));
+    const atualizarQuantidadeCarrinho = () => {
       setCartItemsCount(getCartItemsCount());
     };
 
-    window.addEventListener('storage', atualizarEstadoLogin);
+    window.addEventListener(
+      'storage',
+      atualizarQuantidadeCarrinho,
+    );
 
     return () => {
-      window.removeEventListener('storage', atualizarEstadoLogin);
+      window.removeEventListener(
+        'storage',
+        atualizarQuantidadeCarrinho,
+      );
 
-      if (toastTimeoutRef.current) {
-        window.clearTimeout(toastTimeoutRef.current);
+      if (toastTimeoutRef.current !== null) {
+        window.clearTimeout(
+          toastTimeoutRef.current,
+        );
       }
     };
   }, []);
@@ -116,29 +151,33 @@ export function Produtos() {
     setToastMessage(message);
     setToastVisible(true);
 
-    if (toastTimeoutRef.current) {
-      window.clearTimeout(toastTimeoutRef.current);
+    if (toastTimeoutRef.current !== null) {
+      window.clearTimeout(
+        toastTimeoutRef.current,
+      );
     }
 
-    toastTimeoutRef.current = window.setTimeout(() => {
-      setToastVisible(false);
-    }, 3000);
+    toastTimeoutRef.current = window.setTimeout(
+      () => {
+        setToastVisible(false);
+      },
+      3000,
+    );
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
+    signOut();
 
-    setAuthToken(null);
-    setIsLogged(false);
     setCartItemsCount(0);
     setMenuOpen(false);
 
-    navigate('/produtos');
+    navigate('/produtos', {
+      replace: true,
+    });
   };
 
   const handleAddToCart = (produto: Produto) => {
-    if (!isLogged) {
+    if (!isAuthenticated) {
       navigate('/login');
       return;
     }
@@ -153,18 +192,25 @@ export function Produtos() {
       });
 
       const totalItems = updatedCart.reduce(
-        (total, item) => total + item.quantity,
-        0
+        (total, item) =>
+          total + item.quantity,
+        0,
       );
 
       setCartItemsCount(totalItems);
-      showCartToast(`${produto.name} foi adicionado ao carrinho.`);
+
+      showCartToast(
+        `${produto.name} foi adicionado ao carrinho.`,
+      );
     } catch (error) {
       if (error instanceof Error) {
         alert(error.message);
-      } else {
-        alert('Erro ao adicionar produto ao carrinho.');
+        return;
       }
+
+      alert(
+        'Erro ao adicionar produto ao carrinho.',
+      );
     }
   };
 
@@ -178,11 +224,11 @@ export function Produtos() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 dark:from-gray-950 dark:via-gray-900 dark:to-amber-950">
         <div className="relative">
-          <div className="mb-4 text-8xl drop-shadow-lg animate-spin-slow">
+          <div className="mb-4 animate-spin-slow text-8xl drop-shadow-lg">
             🍯
           </div>
 
-          <div className="absolute inset-0 rounded-full bg-amber-200/30 blur-xl animate-pulse-gentle" />
+          <div className="absolute inset-0 animate-pulse-gentle rounded-full bg-amber-200/30 blur-xl" />
         </div>
 
         <p className="mt-4 text-xl font-bold text-amber-700 dark:text-amber-300">
@@ -196,17 +242,23 @@ export function Produtos() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 px-4 dark:from-gray-950 dark:via-gray-900 dark:to-amber-950">
         <div className="max-w-md rounded-3xl border border-red-200 bg-white p-8 text-center shadow-2xl dark:border-red-900 dark:bg-gray-900">
-          <div className="mb-4 text-6xl">⚠️</div>
+          <div className="mb-4 text-6xl">
+            ⚠️
+          </div>
 
           <h2 className="text-2xl font-black text-red-700 dark:text-red-300">
             Ops!
           </h2>
 
-          <p className="mt-3 text-gray-600 dark:text-gray-400">{erro}</p>
+          <p className="mt-3 text-gray-600 dark:text-gray-400">
+            {erro}
+          </p>
 
           <button
             type="button"
-            onClick={() => window.location.reload()}
+            onClick={() =>
+              window.location.reload()
+            }
             className="mt-6 rounded-2xl bg-amber-600 px-6 py-3 font-bold text-white shadow-lg transition hover:-translate-y-1 hover:bg-amber-700 hover:shadow-xl"
           >
             Tentar novamente
@@ -219,34 +271,44 @@ export function Produtos() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 dark:from-gray-950 dark:via-gray-900 dark:to-amber-950">
       <StoreHeader
-        isLogged={isLogged}
+        isLogged={isAuthenticated}
         cartItemsCount={cartItemsCount}
         categorias={categorias}
-        onOpenMenu={() => setMenuOpen(true)}
+        onOpenMenu={() =>
+          setMenuOpen(true)
+        }
       />
 
       <StoreSidebarMenu
-        isLogged={isLogged}
+        isLogged={isAuthenticated}
         menuOpen={menuOpen}
         cartItemsCount={cartItemsCount}
-        role={role}
-        onClose={() => setMenuOpen(false)}
+        role={user?.role ?? null}
+        onClose={() =>
+          setMenuOpen(false)
+        }
         onLogout={handleLogout}
       />
 
       <CartToast
         message={toastMessage}
         visible={toastVisible}
-        onClose={() => setToastVisible(false)}
+        onClose={() =>
+          setToastVisible(false)
+        }
       />
 
       <ProdutosHero
         busca={busca}
-        isLogged={isLogged}
-        somenteDisponiveis={somenteDisponiveis}
+        isLogged={isAuthenticated}
+        somenteDisponiveis={
+          somenteDisponiveis
+        }
         ordenacao={ordenacao}
         onBuscaChange={setBusca}
-        onSomenteDisponiveisChange={setSomenteDisponiveis}
+        onSomenteDisponiveisChange={
+          setSomenteDisponiveis
+        }
         onOrdenacaoChange={setOrdenacao}
       />
 
@@ -263,21 +325,29 @@ export function Produtos() {
 
         <div
           className={`transition duration-300 ${
-            filtrando ? 'opacity-60' : 'opacity-100'
+            filtrando
+              ? 'opacity-60'
+              : 'opacity-100'
           }`}
         >
           <ProdutosGrid
             produtos={produtos}
-            isLogged={isLogged}
-            onAddToCart={handleAddToCart}
-            onClearSearch={handleClearFilters}
+            isLogged={isAuthenticated}
+            onAddToCart={
+              handleAddToCart
+            }
+            onClearSearch={
+              handleClearFilters
+            }
           />
         </div>
       </div>
 
       <ProdutosInstitutional />
 
-      <StoreFooter isLogged={isLogged} />
+      <StoreFooter
+        isLogged={isAuthenticated}
+      />
     </div>
   );
 }

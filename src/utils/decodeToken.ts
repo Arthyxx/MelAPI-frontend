@@ -1,25 +1,26 @@
 import { jwtDecode } from 'jwt-decode';
 
-interface TokenPayload {
+export type UserRole = 'ADMIN' | 'CLIENTE';
+
+export interface TokenPayload {
   sub: string;
   id: number;
-  role: string;
+  role: UserRole;
   exp: number;
-  iss: string;
+  iss?: string;
 }
 
-export const decodeToken = (token: string): TokenPayload | null => {
+export function decodeToken(
+  token: string,
+): TokenPayload | null {
   try {
     return jwtDecode<TokenPayload>(token);
   } catch (error) {
-    console.error('Erro ao decodificar token', error);
+    console.error(
+      'Erro ao decodificar o token:',
+      error,
+    );
+
     return null;
   }
-};
-
-export const getUserRole = (): string | null => {
-  const token = localStorage.getItem('token');
-  if (!token) return null;
-  const decoded = decodeToken(token);
-  return decoded?.role || null;
-};
+}

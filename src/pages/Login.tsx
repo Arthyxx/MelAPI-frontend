@@ -1,7 +1,17 @@
 import { useState, type FormEvent } from 'react';
+import type { AxiosError } from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
-import { login, setAuthToken } from '../services/api';
-import { decodeToken } from '../utils/decodeToken';
+import { useAuth } from '../contexts/AuthContext';
+import { login } from '../services/api';
+
+interface LoginResponse {
+  token: string;
+}
+
+interface ApiErrorResponse {
+  message?: string | string[];
+  error?: string;
+}
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -11,41 +21,46 @@ export function Login() {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
+  const { signIn } = useAuth();
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (
+    event: FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault();
 
     try {
       setErro('');
       setLoading(true);
 
-      const { token } = await login(email, password);
+      const response = (await login(
+        email.trim().toLowerCase(),
+        password,
+      )) as LoginResponse;
 
-      localStorage.setItem('token', token);
-      setAuthToken(token);
+      signIn(response.token);
 
-      const decoded = decodeToken(token);
-      const role = decoded?.role || 'CLIENTE';
+      navigate('/produtos', {
+        replace: true,
+      });
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiErrorResponse>;
+      const apiMessage = axiosError.response?.data?.message;
 
-      localStorage.setItem('role', role);
+      console.error('Erro ao fazer login:', {
+        statusCode: axiosError.response?.status,
+        data: axiosError.response?.data,
+        message: axiosError.message,
+      });
 
-      if (role === 'ADMIN') {
-        navigate('/admin');
+      if (Array.isArray(apiMessage)) {
+        setErro(apiMessage.join(' '));
         return;
       }
 
-      navigate('/produtos');
-    } catch (err: any) {
-      console.error('Erro ao fazer login:', {
-        statusCode: err.response?.status,
-        data: err.response?.data,
-        message: err.message,
-      });
-
       setErro(
-        err.response?.data?.message ||
-          err.response?.data?.error ||
-          'E-mail ou senha inválidos.'
+        apiMessage ||
+          axiosError.response?.data?.error ||
+          'E-mail ou senha inválidos.',
       );
     } finally {
       setLoading(false);
@@ -60,9 +75,11 @@ export function Login() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 px-4 py-10 dark:from-gray-950 dark:via-gray-900 dark:to-amber-950">
-      <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-amber-300/30 blur-3xl animate-pulse-gentle" />
-      <div className="absolute -right-24 bottom-10 h-80 w-80 rounded-full bg-yellow-400/30 blur-3xl animate-pulse-gentle" />
-      <div className="absolute left-1/2 top-1/3 h-48 w-48 rounded-full bg-orange-300/20 blur-3xl animate-spin-slow" />
+      <div className="absolute -left-24 top-10 h-72 w-72 animate-pulse-gentle rounded-full bg-amber-300/30 blur-3xl" />
+
+      <div className="absolute -right-24 bottom-10 h-80 w-80 animate-pulse-gentle rounded-full bg-yellow-400/30 blur-3xl" />
+
+      <div className="absolute left-1/2 top-1/3 h-48 w-48 animate-spin-slow rounded-full bg-orange-300/20 blur-3xl" />
 
       <main className="relative z-10 mx-auto grid min-h-[calc(100vh-5rem)] max-w-6xl items-center gap-8 lg:grid-cols-[1.05fr_0.95fr]">
         <section className="hidden animate-fade-in-up lg:block">
@@ -76,7 +93,9 @@ export function Login() {
             </h1>
 
             <p className="mt-5 text-lg text-gray-600 dark:text-gray-300">
-              Acesse sua conta para comprar produtos naturais, acompanhar pedidos e visualizar detalhes das suas compras.
+              Acesse sua conta para comprar produtos naturais,
+              acompanhar pedidos e visualizar detalhes das suas
+              compras.
             </p>
 
             <div className="mt-8 grid gap-4">
@@ -88,7 +107,8 @@ export function Login() {
                 </h3>
 
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Consulte status, produtos comprados e detalhes de cada pedido.
+                  Consulte status, produtos comprados e detalhes de
+                  cada pedido.
                 </p>
               </div>
 
@@ -100,7 +120,8 @@ export function Login() {
                 </h3>
 
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Adicione produtos ao carrinho e finalize pedidos sem sofrimento, uma raridade neste mundo.
+                  Adicione produtos ao carrinho e finalize seus pedidos
+                  com facilidade.
                 </p>
               </div>
 
@@ -112,7 +133,8 @@ export function Login() {
                 </h3>
 
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Mel, própolis e produtos artesanais em uma loja com cara de sistema de verdade.
+                  Mel, própolis e produtos artesanais disponíveis na
+                  loja.
                 </p>
               </div>
             </div>
@@ -123,7 +145,7 @@ export function Login() {
           <div className="overflow-hidden rounded-[2rem] border border-amber-200 bg-white/85 shadow-2xl backdrop-blur-xl dark:border-amber-800 dark:bg-gray-900/90">
             <div className="bg-gradient-to-r from-amber-700 via-yellow-600 to-amber-700 px-6 py-8 text-white sm:px-10">
               <div className="flex items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-white/15 text-4xl shadow-inner animate-bounce-soft">
+                <div className="flex h-16 w-16 animate-bounce-soft items-center justify-center rounded-3xl bg-white/15 text-4xl shadow-inner">
                   🐝
                 </div>
 
@@ -139,7 +161,8 @@ export function Login() {
               </div>
 
               <p className="mt-4 max-w-2xl text-sm text-amber-50">
-                Faça login para continuar comprando, acompanhar pedidos e gerenciar sua experiência na loja.
+                Faça login para continuar comprando, acompanhar pedidos
+                e gerenciar sua experiência na loja.
               </p>
             </div>
 
@@ -166,8 +189,11 @@ export function Login() {
                       type="email"
                       placeholder="seuemail@email.com"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(event) =>
+                        setEmail(event.target.value)
+                      }
                       className={`${inputClass} pl-12`}
+                      autoComplete="email"
                       required
                     />
                   </div>
@@ -188,14 +214,21 @@ export function Login() {
                       type={showPassword ? 'text' : 'password'}
                       placeholder="Digite sua senha"
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(event) =>
+                        setPassword(event.target.value)
+                      }
                       className={`${inputClass} px-12`}
+                      autoComplete="current-password"
                       required
                     />
 
                     <button
                       type="button"
-                      onClick={() => setShowPassword((prev) => !prev)}
+                      onClick={() =>
+                        setShowPassword(
+                          (previousValue) => !previousValue,
+                        )
+                      }
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-amber-700 transition hover:text-amber-900 dark:text-amber-300"
                     >
                       {showPassword ? 'Ocultar' : 'Ver'}
@@ -203,7 +236,7 @@ export function Login() {
                   </div>
                 </div>
 
-                <div className="animate-fade-in-up delay-300 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex animate-fade-in-up flex-col gap-3 delay-300 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     Use seus dados cadastrados para entrar.
                   </p>
@@ -216,7 +249,7 @@ export function Login() {
                   </Link>
                 </div>
 
-                <div className="animate-fade-in-up delay-400 space-y-4">
+                <div className="animate-fade-in-up space-y-4 delay-400">
                   <button
                     type="submit"
                     disabled={loading}
@@ -233,7 +266,9 @@ export function Login() {
                       ) : (
                         <>
                           Entrar na loja
-                          <span className="transition group-hover:translate-x-1">→</span>
+                          <span className="transition group-hover:translate-x-1">
+                            →
+                          </span>
                         </>
                       )}
                     </span>
@@ -243,7 +278,7 @@ export function Login() {
                     to="/produtos"
                     className="block rounded-2xl border border-amber-200 px-4 py-3 text-center text-sm font-bold text-amber-800 transition hover:bg-amber-50 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-gray-800"
                   >
-                    Ver produtos depois do login
+                    Ver produtos sem entrar
                   </Link>
                 </div>
               </form>

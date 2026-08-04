@@ -1,110 +1,121 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Login } from './pages/Login';
-import { Produtos } from './pages/Produtos';
-import { setAuthToken } from './services/api';
-import { useEffect, useState } from 'react';
-import { AdminRoute } from './components/AdminRoute';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AdminLayout } from './components/AdminLayout';
-
-import { ProdutosAdmin } from './pages/admin/ProdutosAdmin';
+import { AdminRoute } from './components/AdminRoute';
+import { useAuth } from './contexts/AuthContext';
+import { Cadastro } from './pages/Cadastro';
+import { Carrinho } from './pages/Carrinho';
+import { CategoriaProdutos } from './pages/CategoriaProdutos';
+import { DetalhePedido } from './pages/DetalhePedido';
+import { Login } from './pages/Login';
+import { MeusPedidos } from './pages/MeusPedidos';
+import { Perfil } from './pages/Perfil';
+import { ProdutoDetalhe } from './pages/ProdutoDetalhe';
+import { Produtos } from './pages/Produtos';
 import { CategoriasAdmin } from './pages/admin/CategoriasAdmin';
 import { ClientesAdmin } from './pages/admin/ClientesAdmin';
 import { PedidosAdmin } from './pages/admin/PedidosAdmin';
-import { Cadastro } from './pages/Cadastro';
-import { Carrinho } from './pages/Carrinho';
-import { MeusPedidos } from './pages/MeusPedidos';
-import { DetalhePedido } from './pages/DetalhePedido';
-import { Perfil } from './pages/Perfil';
-import { ProdutoDetalhe } from './pages/ProdutoDetalhe';
-import { CategoriaProdutos } from './pages/CategoriaProdutos';
+import { ProdutosAdmin } from './pages/admin/ProdutosAdmin';
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  const updateAuthState = () => {
-    const token = localStorage.getItem('token');
-    setIsAuthenticated(!!token);
-
-    if (token) {
-      setAuthToken(token);
-    }
-  };
-
-  useEffect(() => {
-    updateAuthState();
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'token') {
-        updateAuthState();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-
-    const originalSetItem = localStorage.setItem;
-
-    localStorage.setItem = function (key: string, value: string) {
-      originalSetItem.call(this, key, value);
-
-      if (key === 'token') {
-        updateAuthState();
-      }
-    };
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      localStorage.setItem = originalSetItem;
-    };
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-amber-600 text-xl">Carregando...</div>
-      </div>
-    );
-  }
+  const { isAuthenticated, isAdmin } = useAuth();
 
   return (
     <BrowserRouter>
-      <div className="min-h-screen flex flex-col bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 dark:from-gray-900 dark:via-gray-800 dark:to-amber-950">
+      <div className="flex min-h-screen flex-col bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 dark:from-gray-900 dark:via-gray-800 dark:to-amber-950">
         <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/cadastro" element={<Cadastro />} />
+          <Route
+            path="/login"
+            element={
+              isAuthenticated ? (
+                <Navigate
+                  to={isAdmin ? '/admin/produtos' : '/produtos'}
+                  replace
+                />
+              ) : (
+                <Login />
+              )
+            }
+          />
+
+          <Route
+            path="/cadastro"
+            element={
+              isAuthenticated ? (
+                <Navigate
+                  to={isAdmin ? '/admin/produtos' : '/produtos'}
+                  replace
+                />
+              ) : (
+                <Cadastro />
+              )
+            }
+          />
 
           <Route path="/produtos" element={<Produtos />} />
 
-          <Route path="/produtos/:id" element={<ProdutoDetalhe />} />
+          <Route
+            path="/produtos/:id"
+            element={<ProdutoDetalhe />}
+          />
 
-          <Route path="/categorias/:id" element={<CategoriaProdutos />} />
+          <Route
+            path="/categorias/:id"
+            element={<CategoriaProdutos />}
+          />
 
           <Route
             path="/carrinho"
-            element={isAuthenticated ? <Carrinho /> : <Navigate to="/login" />}
+            element={
+              isAuthenticated ? (
+                <Carrinho />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
           />
 
           <Route
             path="/meus-pedidos"
-            element={isAuthenticated ? <MeusPedidos /> : <Navigate to="/login" />}
+            element={
+              isAuthenticated ? (
+                <MeusPedidos />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
           />
 
           <Route
             path="/meus-pedidos/:id"
-            element={isAuthenticated ? <DetalhePedido /> : <Navigate to="/login" />}
+            element={
+              isAuthenticated ? (
+                <DetalhePedido />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
           />
 
           <Route
             path="/perfil"
-            element={isAuthenticated ? <Perfil /> : <Navigate to="/login" />}
+            element={
+              isAuthenticated ? (
+                <Perfil />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
           />
 
-          <Route path="/" element={<Navigate to="/produtos" />} />
+          <Route
+            path="/"
+            element={<Navigate to="/produtos" replace />}
+          />
 
-          <Route path="/admin" element={<Navigate to="/admin/produtos" />} />
+          <Route
+            path="/admin"
+            element={<Navigate to="/admin/produtos" replace />}
+          />
 
           <Route
             path="/admin/produtos"
@@ -148,6 +159,11 @@ function App() {
                 </AdminLayout>
               </AdminRoute>
             }
+          />
+
+          <Route
+            path="*"
+            element={<Navigate to="/produtos" replace />}
           />
         </Routes>
       </div>

@@ -1,11 +1,21 @@
+import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
-import { getUserRole } from '../utils/decodeToken';
-import type { JSX } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
-export function AdminRoute({ children }: { children: JSX.Element }) {
-  const role = getUserRole();
-  if (role !== 'ADMIN') {
+interface AdminRouteProps {
+  children: ReactNode;
+}
+
+export function AdminRoute({ children }: AdminRouteProps) {
+  const { isAuthenticated, isAdmin } = useAuth();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!isAdmin) {
     return <Navigate to="/produtos" replace />;
   }
-  return children;
+
+  return <>{children}</>;
 }
