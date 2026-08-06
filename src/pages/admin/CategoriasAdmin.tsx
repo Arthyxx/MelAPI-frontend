@@ -50,7 +50,7 @@ export function CategoriasAdmin() {
       setError('');
       setLoading(true);
 
-      const response = await api.get('/categorias');
+      const response = await api.get('/categorias/admin');
       const content = response.data.content || response.data;
 
       setCategorias(Array.isArray(content) ? content : []);
