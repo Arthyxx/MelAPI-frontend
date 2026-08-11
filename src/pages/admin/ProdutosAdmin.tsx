@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+} from 'react';
+import type { AxiosError } from 'axios';
+
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { api } from '../../services/api';
 import { formatCurrency } from '../../utils/formatCurrency';
@@ -22,6 +30,25 @@ interface Categoria {
   name: string;
 }
 
+interface Pagination {
+  page: number;
+  limit: number;
+  totalItems: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+interface ProdutosResponse {
+  content: Produto[];
+  pagination: Pagination;
+}
+
+interface ApiErrorResponse {
+  message?: string | string[];
+  error?: string;
+}
+
 const initialFormData = {
   name: '',
   description: '',
@@ -32,12 +59,25 @@ const initialFormData = {
   active: true,
 };
 
+const initialPagination: Pagination = {
+  page: 1,
+  limit: 10,
+  totalItems: 0,
+  totalPages: 1,
+  hasNextPage: false,
+  hasPreviousPage: false,
+};
+
 export function ProdutosAdmin() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
 
+  const [pagination, setPagination] =
+    useState<Pagination>(initialPagination);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [editingId, setEditingId] =
     useState<number | null>(null);
@@ -48,6 +88,16 @@ export function ProdutosAdmin() {
   const [formData, setFormData] =
     useState(initialFormData);
 
+  const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [activeFilter, setActiveFilter] =
+    useState<'true' | 'false' | ''>('');
+
+  const [sort, setSort] = useState('id,asc');
+
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -55,16 +105,15 @@ export function ProdutosAdmin() {
     (produto) => produto.id === deleteId,
   );
 
-  const produtosAtivos = useMemo(() => {
+  const produtosAtivosNaPagina = useMemo(() => {
     return produtos.filter(
       (produto) => produto.active,
     ).length;
   }, [produtos]);
 
-  const produtosSemEstoque = useMemo(() => {
+  const produtosSemEstoqueNaPagina = useMemo(() => {
     return produtos.filter(
-      (produto) =>
-        produto.stockQuantity <= 0,
+      (produto) => produto.stockQuantity <= 0,
     ).length;
   }, [produtos]);
 
@@ -73,65 +122,148 @@ export function ProdutosAdmin() {
     setFormData(initialFormData);
   };
 
-  const fetchProdutos = async () => {
-    const response =
-      await api.get('/produtos/admin');
+  const getErrorMessage = (
+    requestError: AxiosError<ApiErrorResponse>,
+    fallbackMessage: string,
+  ) => {
+    const apiMessage =
+      requestError.response?.data?.message;
 
-    const content =
-      response.data.content ||
-      response.data;
+    if (Array.isArray(apiMessage)) {
+      return apiMessage.join(' ');
+    }
 
-    setProdutos(
-      Array.isArray(content)
-        ? content
-        : [],
+    return (
+      apiMessage ||
+      requestError.response?.data?.error ||
+      fallbackMessage
     );
   };
 
-  const fetchCategorias = async () => {
-    const response =
-      await api.get('/categorias');
-
-    const content =
-      response.data.content ||
-      response.data;
-
-    setCategorias(
-      Array.isArray(content)
-        ? content
-        : [],
-    );
-  };
-
-  const fetchData = async () => {
+  const fetchProdutos = useCallback(async () => {
     try {
       setError('');
       setLoading(true);
 
-      await Promise.all([
-        fetchProdutos(),
-        fetchCategorias(),
-      ]);
-    } catch (err) {
-      console.error(
-        'Erro ao carregar dados do admin de produtos:',
-        err,
+      const response =
+        await api.get<ProdutosResponse>(
+          '/produtos/admin',
+          {
+            params: {
+              page,
+              limit,
+              name: search.trim() || undefined,
+              categoryId:
+                categoryFilter || undefined,
+              active:
+                activeFilter || undefined,
+              sort,
+            },
+          },
+        );
+
+      setProdutos(
+        Array.isArray(response.data.content)
+          ? response.data.content
+          : [],
       );
 
+      setPagination(
+        response.data.pagination ||
+          initialPagination,
+      );
+    } catch (requestError) {
+      const axiosError =
+        requestError as AxiosError<ApiErrorResponse>;
+
+      console.error(
+        'Erro ao carregar produtos:',
+        {
+          statusCode:
+            axiosError.response?.status,
+          data:
+            axiosError.response?.data,
+          message:
+            axiosError.message,
+        },
+      );
+
+      setProdutos([]);
+      setPagination(initialPagination);
+
       setError(
-        'Erro ao carregar produtos e categorias.',
+        getErrorMessage(
+          axiosError,
+          'Erro ao carregar produtos.',
+        ),
       );
     } finally {
       setLoading(false);
     }
+  }, [
+    page,
+    limit,
+    search,
+    categoryFilter,
+    activeFilter,
+    sort,
+  ]);
+
+  const fetchCategorias = async () => {
+    try {
+      const response =
+        await api.get('/categorias');
+
+      const content =
+        response.data.content ||
+        response.data;
+
+      setCategorias(
+        Array.isArray(content)
+          ? content
+          : [],
+      );
+    } catch (requestError) {
+      console.error(
+        'Erro ao carregar categorias:',
+        requestError,
+      );
+
+      setError(
+        'Erro ao carregar categorias.',
+      );
+    }
   };
 
   useEffect(() => {
-    void fetchData();
+    void fetchCategorias();
   }, []);
 
+  useEffect(() => {
+    const timeoutId = window.setTimeout(
+      () => {
+        void fetchProdutos();
+      },
+      search ? 350 : 0,
+    );
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [fetchProdutos, search]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [
+    search,
+    categoryFilter,
+    activeFilter,
+    sort,
+    limit,
+  ]);
+
   const handleSubmit = async (
-    event: React.FormEvent,
+    event: FormEvent<HTMLFormElement>,
   ) => {
     event.preventDefault();
 
@@ -167,37 +299,51 @@ export function ProdutosAdmin() {
         setSuccess(
           'Produto atualizado com sucesso.',
         );
-      } else {
-        await api.post(
-          '/produtos',
-          payload,
-        );
 
-        setSuccess(
-          'Produto criado com sucesso.',
-        );
+        resetForm();
+
+        await fetchProdutos();
+
+        return;
       }
+
+      await api.post(
+        '/produtos',
+        payload,
+      );
+
+      setSuccess(
+        'Produto criado com sucesso.',
+      );
 
       resetForm();
 
-      await fetchProdutos();
-    } catch (err: any) {
+      if (page !== 1) {
+        setPage(1);
+      } else {
+        await fetchProdutos();
+      }
+    } catch (requestError) {
+      const axiosError =
+        requestError as AxiosError<ApiErrorResponse>;
+
       console.error(
         'Erro ao salvar produto:',
         {
           statusCode:
-            err.response?.status,
+            axiosError.response?.status,
           data:
-            err.response?.data,
+            axiosError.response?.data,
           message:
-            err.message,
+            axiosError.message,
         },
       );
 
       setError(
-        err.response?.data?.message ||
-          err.response?.data?.error ||
+        getErrorMessage(
+          axiosError,
           'Erro ao salvar produto.',
+        ),
       );
     } finally {
       setSaving(false);
@@ -242,6 +388,7 @@ export function ProdutosAdmin() {
       try {
         setError('');
         setSuccess('');
+        setDeleting(true);
 
         await api.delete(
           `/produtos/${deleteId}`,
@@ -253,39 +400,60 @@ export function ProdutosAdmin() {
 
         setDeleteId(null);
 
+        if (
+          produtos.length === 1 &&
+          page > 1
+        ) {
+          setPage(
+            (currentPage) =>
+              currentPage - 1,
+          );
+
+          return;
+        }
+
         await fetchProdutos();
-      } catch (err: any) {
+      } catch (requestError) {
+        const axiosError =
+          requestError as AxiosError<ApiErrorResponse>;
+
         console.error(
           'Erro ao excluir produto:',
           {
             statusCode:
-              err.response?.status,
+              axiosError.response?.status,
             data:
-              err.response?.data,
+              axiosError.response?.data,
             message:
-              err.message,
+              axiosError.message,
           },
         );
 
         setError(
-          err.response?.data?.message ||
-            err.response?.data?.error ||
+          getErrorMessage(
+            axiosError,
             'Erro ao excluir produto.',
+          ),
         );
+      } finally {
+        setDeleting(false);
       }
     };
 
-  if (loading) {
-    return (
-      <div className="rounded-3xl border border-gray-100 bg-white p-8 text-center shadow-sm">
-        <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-amber-200 border-t-amber-700" />
+  const handleClearFilters = () => {
+    setSearch('');
+    setCategoryFilter('');
+    setActiveFilter('');
+    setSort('id,asc');
+    setPage(1);
+  };
 
-        <p className="mt-4 font-semibold text-gray-600">
-          Carregando produtos...
-        </p>
-      </div>
-    );
-  }
+  const hasFilters = Boolean(
+    search ||
+      categoryFilter ||
+      activeFilter ||
+      sort !== 'id,asc',
+  );
 
   return (
     <div className="space-y-6 bg-white text-gray-900">
@@ -300,39 +468,38 @@ export function ProdutosAdmin() {
           </h2>
 
           <p className="mt-2 text-sm text-gray-500">
-            Cadastre, edite e acompanhe
-            os produtos exibidos na loja.
+            Cadastre, edite e acompanhe os produtos exibidos na loja.
           </p>
         </div>
 
         <div className="grid grid-cols-3 gap-3 text-center">
           <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
             <p className="text-2xl font-black text-gray-950">
-              {produtos.length}
+              {pagination.totalItems}
             </p>
 
             <p className="text-xs font-bold text-gray-500">
-              Total
+              Encontrados
             </p>
           </div>
 
           <div className="rounded-2xl border border-green-100 bg-green-50 px-4 py-3">
             <p className="text-2xl font-black text-green-700">
-              {produtosAtivos}
+              {produtosAtivosNaPagina}
             </p>
 
             <p className="text-xs font-bold text-green-700">
-              Ativos
+              Ativos na página
             </p>
           </div>
 
           <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3">
             <p className="text-2xl font-black text-red-700">
-              {produtosSemEstoque}
+              {produtosSemEstoqueNaPagina}
             </p>
 
             <p className="text-xs font-bold text-red-700">
-              Sem estoque
+              Sem estoque na página
             </p>
           </div>
         </div>
@@ -359,8 +526,7 @@ export function ProdutosAdmin() {
           </h3>
 
           <p className="text-sm text-gray-500">
-            Preencha as informações que
-            serão exibidas para os clientes.
+            Preencha as informações que serão exibidas para os clientes.
           </p>
         </div>
 
@@ -380,8 +546,7 @@ export function ProdutosAdmin() {
               onChange={(event) =>
                 setFormData({
                   ...formData,
-                  name:
-                    event.target.value,
+                  name: event.target.value,
                 })
               }
               className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
@@ -403,8 +568,7 @@ export function ProdutosAdmin() {
               onChange={(event) =>
                 setFormData({
                   ...formData,
-                  price:
-                    event.target.value,
+                  price: event.target.value,
                 })
               }
               className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
@@ -421,9 +585,7 @@ export function ProdutosAdmin() {
               type="number"
               min="0"
               placeholder="10"
-              value={
-                formData.stockQuantity
-              }
+              value={formData.stockQuantity}
               onChange={(event) =>
                 setFormData({
                   ...formData,
@@ -442,9 +604,7 @@ export function ProdutosAdmin() {
             </label>
 
             <select
-              value={
-                formData.categoryId
-              }
+              value={formData.categoryId}
               onChange={(event) =>
                 setFormData({
                   ...formData,
@@ -500,9 +660,7 @@ export function ProdutosAdmin() {
             <textarea
               rows={4}
               placeholder="Descreva o produto..."
-              value={
-                formData.description
-              }
+              value={formData.description}
               onChange={(event) =>
                 setFormData({
                   ...formData,
@@ -564,23 +722,197 @@ export function ProdutosAdmin() {
         </form>
       </section>
 
+      <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+        <div>
+          <h3 className="text-xl font-black text-gray-950">
+            Buscar produtos
+          </h3>
+
+          <p className="mt-1 text-sm text-gray-500">
+            Pesquise e filtre os produtos cadastrados.
+          </p>
+        </div>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-5">
+          <div>
+            <label className="mb-2 block text-sm font-black text-gray-700">
+              Nome
+            </label>
+
+            <input
+              type="search"
+              placeholder="Buscar produto"
+              value={search}
+              onChange={(event) =>
+                setSearch(event.target.value)
+              }
+              className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-black text-gray-700">
+              Categoria
+            </label>
+
+            <select
+              value={categoryFilter}
+              onChange={(event) =>
+                setCategoryFilter(
+                  event.target.value,
+                )
+              }
+              className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
+            >
+              <option value="">
+                Todas
+              </option>
+
+              {categorias.map(
+                (categoria) => (
+                  <option
+                    key={categoria.id}
+                    value={categoria.id}
+                  >
+                    {categoria.name}
+                  </option>
+                ),
+              )}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-black text-gray-700">
+              Status
+            </label>
+
+            <select
+              value={activeFilter}
+              onChange={(event) =>
+                setActiveFilter(
+                  event.target.value as
+                    | 'true'
+                    | 'false'
+                    | '',
+                )
+              }
+              className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
+            >
+              <option value="">
+                Todos
+              </option>
+
+              <option value="true">
+                Ativos
+              </option>
+
+              <option value="false">
+                Inativos
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-black text-gray-700">
+              Ordenação
+            </label>
+
+            <select
+              value={sort}
+              onChange={(event) =>
+                setSort(event.target.value)
+              }
+              className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
+            >
+              <option value="id,asc">
+                ID crescente
+              </option>
+
+              <option value="id,desc">
+                ID decrescente
+              </option>
+
+              <option value="name,asc">
+                Nome A-Z
+              </option>
+
+              <option value="name,desc">
+                Nome Z-A
+              </option>
+
+              <option value="price,asc">
+                Menor preço
+              </option>
+
+              <option value="price,desc">
+                Maior preço
+              </option>
+            </select>
+          </div>
+
+          <div className="flex items-end">
+            <button
+              type="button"
+              onClick={handleClearFilters}
+              disabled={!hasFilters}
+              className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-5 font-black text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Limpar filtros
+            </button>
+          </div>
+        </div>
+      </section>
+
       <section className="rounded-3xl border border-gray-100 bg-white shadow-sm">
-        <div className="flex flex-col gap-2 border-b border-gray-100 p-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 border-b border-gray-100 p-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-xl font-black text-gray-950">
               Produtos cadastrados
             </h3>
 
             <p className="text-sm text-gray-500">
-              Gerencie produtos ativos e
-              inativos do sistema.
+              Página {pagination.page} de{' '}
+              {pagination.totalPages} —{' '}
+              {pagination.totalItems}{' '}
+              resultado(s).
             </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-bold text-gray-600">
+              Por página:
+            </label>
+
+            <select
+              value={limit}
+              onChange={(event) =>
+                setLimit(
+                  Number(
+                    event.target.value,
+                  ),
+                )
+              }
+              className="h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm font-bold outline-none focus:border-amber-400"
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+            </select>
           </div>
         </div>
 
-        {produtos.length === 0 ? (
+        {loading ? (
+          <div className="p-10 text-center">
+            <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-amber-200 border-t-amber-700" />
+
+            <p className="mt-4 font-semibold text-gray-600">
+              Carregando produtos...
+            </p>
+          </div>
+        ) : produtos.length === 0 ? (
           <div className="p-10 text-center text-gray-500">
-            Nenhum produto cadastrado.
+            Nenhum produto encontrado.
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -640,9 +972,7 @@ export function ProdutosAdmin() {
 
                           <div>
                             <p className="font-black text-gray-900">
-                              {
-                                produto.name
-                              }
+                              {produto.name}
                             </p>
 
                             <p className="line-clamp-1 max-w-sm text-sm text-gray-500">
@@ -728,6 +1058,55 @@ export function ProdutosAdmin() {
             </table>
           </div>
         )}
+
+        <div className="flex flex-col gap-3 border-t border-gray-100 p-6 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm font-semibold text-gray-500">
+            Mostrando {produtos.length} de{' '}
+            {pagination.totalItems}{' '}
+            resultado(s).
+          </p>
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                setPage(
+                  (currentPage) =>
+                    currentPage - 1,
+                )
+              }
+              disabled={
+                loading ||
+                !pagination.hasPreviousPage
+              }
+              className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-black text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Anterior
+            </button>
+
+            <span className="flex min-w-24 items-center justify-center rounded-xl bg-gray-50 px-4 py-2 text-sm font-black text-gray-700">
+              {pagination.page} /{' '}
+              {pagination.totalPages}
+            </span>
+
+            <button
+              type="button"
+              onClick={() =>
+                setPage(
+                  (currentPage) =>
+                    currentPage + 1,
+                )
+              }
+              disabled={
+                loading ||
+                !pagination.hasNextPage
+              }
+              className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-black text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Próxima
+            </button>
+          </div>
+        </div>
       </section>
 
       <ConfirmModal
@@ -737,15 +1116,19 @@ export function ProdutosAdmin() {
           produtoParaExcluir?.name ||
           'selecionado'
         }" será excluído definitivamente se não possuir histórico de pedidos. Caso possua, será apenas desativado para preservar o histórico.`}
-        confirmText="Confirmar"
+        confirmText={
+          deleting
+            ? 'Processando...'
+            : 'Confirmar'
+        }
         cancelText="Cancelar"
         variant="danger"
-        onConfirm={
-          handleConfirmDelete
-        }
-        onCancel={() =>
-          setDeleteId(null)
-        }
+        onConfirm={handleConfirmDelete}
+        onCancel={() => {
+          if (!deleting) {
+            setDeleteId(null);
+          }
+        }}
       />
     </div>
   );
