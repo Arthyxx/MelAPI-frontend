@@ -13,6 +13,11 @@ interface AdminLayoutProps {
 
 const navItems = [
   {
+    path: '/admin',
+    label: 'Dashboard',
+    icon: '📊',
+  },
+  {
     path: '/admin/produtos',
     label: 'Produtos',
     icon: '📦',
@@ -44,6 +49,7 @@ export function AdminLayout({
 
   const handleSignOut = () => {
     signOut();
+
     navigate('/login', {
       replace: true,
     });
@@ -54,7 +60,9 @@ export function AdminLayout({
       <header className="sticky top-0 z-10 border-b border-amber-200 bg-white shadow-sm">
         <div className="container mx-auto flex items-center justify-between gap-4 px-4 py-3">
           <div className="flex items-center gap-3">
-            <span className="text-2xl">🍯</span>
+            <span className="text-2xl">
+              🍯
+            </span>
 
             <h1 className="text-xl font-bold text-amber-800">
               Apiário Vitória Seven
@@ -96,7 +104,8 @@ export function AdminLayout({
           <nav className="space-y-1">
             {navItems.map((item) => {
               const isActive =
-                location.pathname === item.path;
+                location.pathname ===
+                item.path;
 
               return (
                 <Link

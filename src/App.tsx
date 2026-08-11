@@ -1,7 +1,14 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+} from 'react-router-dom';
+
 import { AdminLayout } from './components/AdminLayout';
 import { AdminRoute } from './components/AdminRoute';
 import { useAuth } from './contexts/AuthContext';
+
 import { Cadastro } from './pages/Cadastro';
 import { Carrinho } from './pages/Carrinho';
 import { CategoriaProdutos } from './pages/CategoriaProdutos';
@@ -11,13 +18,18 @@ import { MeusPedidos } from './pages/MeusPedidos';
 import { Perfil } from './pages/Perfil';
 import { ProdutoDetalhe } from './pages/ProdutoDetalhe';
 import { Produtos } from './pages/Produtos';
+
+import { AdminDashboard } from './pages/AdminDashboard';
 import { CategoriasAdmin } from './pages/admin/CategoriasAdmin';
 import { ClientesAdmin } from './pages/admin/ClientesAdmin';
 import { PedidosAdmin } from './pages/admin/PedidosAdmin';
 import { ProdutosAdmin } from './pages/admin/ProdutosAdmin';
 
 function App() {
-  const { isAuthenticated, isAdmin } = useAuth();
+  const {
+    isAuthenticated,
+    isAdmin,
+  } = useAuth();
 
   return (
     <BrowserRouter>
@@ -28,7 +40,11 @@ function App() {
             element={
               isAuthenticated ? (
                 <Navigate
-                  to={isAdmin ? '/admin/produtos' : '/produtos'}
+                  to={
+                    isAdmin
+                      ? '/admin'
+                      : '/produtos'
+                  }
                   replace
                 />
               ) : (
@@ -42,7 +58,11 @@ function App() {
             element={
               isAuthenticated ? (
                 <Navigate
-                  to={isAdmin ? '/admin/produtos' : '/produtos'}
+                  to={
+                    isAdmin
+                      ? '/admin'
+                      : '/produtos'
+                  }
                   replace
                 />
               ) : (
@@ -51,7 +71,10 @@ function App() {
             }
           />
 
-          <Route path="/produtos" element={<Produtos />} />
+          <Route
+            path="/produtos"
+            element={<Produtos />}
+          />
 
           <Route
             path="/produtos/:id"
@@ -60,7 +83,9 @@ function App() {
 
           <Route
             path="/categorias/:id"
-            element={<CategoriaProdutos />}
+            element={
+              <CategoriaProdutos />
+            }
           />
 
           <Route
@@ -69,7 +94,10 @@ function App() {
               isAuthenticated ? (
                 <Carrinho />
               ) : (
-                <Navigate to="/login" replace />
+                <Navigate
+                  to="/login"
+                  replace
+                />
               )
             }
           />
@@ -80,7 +108,10 @@ function App() {
               isAuthenticated ? (
                 <MeusPedidos />
               ) : (
-                <Navigate to="/login" replace />
+                <Navigate
+                  to="/login"
+                  replace
+                />
               )
             }
           />
@@ -91,7 +122,10 @@ function App() {
               isAuthenticated ? (
                 <DetalhePedido />
               ) : (
-                <Navigate to="/login" replace />
+                <Navigate
+                  to="/login"
+                  replace
+                />
               )
             }
           />
@@ -102,19 +136,33 @@ function App() {
               isAuthenticated ? (
                 <Perfil />
               ) : (
-                <Navigate to="/login" replace />
+                <Navigate
+                  to="/login"
+                  replace
+                />
               )
             }
           />
 
           <Route
             path="/"
-            element={<Navigate to="/produtos" replace />}
+            element={
+              <Navigate
+                to="/produtos"
+                replace
+              />
+            }
           />
 
           <Route
             path="/admin"
-            element={<Navigate to="/admin/produtos" replace />}
+            element={
+              <AdminRoute>
+                <AdminLayout title="Dashboard">
+                  <AdminDashboard />
+                </AdminLayout>
+              </AdminRoute>
+            }
           />
 
           <Route
@@ -163,7 +211,12 @@ function App() {
 
           <Route
             path="*"
-            element={<Navigate to="/produtos" replace />}
+            element={
+              <Navigate
+                to="/produtos"
+                replace
+              />
+            }
           />
         </Routes>
       </div>
