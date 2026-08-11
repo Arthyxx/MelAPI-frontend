@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { api } from '../../services/api';
 import { formatCurrency } from '../../utils/formatCurrency';
-import { ConfirmModal } from '../../components/ui/ConfirmModal';
 
 interface Produto {
   id: number;
@@ -11,7 +11,10 @@ interface Produto {
   description?: string;
   imageUrl?: string;
   active: boolean;
-  category: { id: number; name: string };
+  category: {
+    id: number;
+    name: string;
+  };
 }
 
 interface Categoria {
@@ -36,22 +39,33 @@ export function ProdutosAdmin() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [editingId, setEditingId] =
+    useState<number | null>(null);
 
-  const [formData, setFormData] = useState(initialFormData);
+  const [deleteId, setDeleteId] =
+    useState<number | null>(null);
+
+  const [formData, setFormData] =
+    useState(initialFormData);
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const produtoParaExcluir = produtos.find((produto) => produto.id === deleteId);
+  const produtoParaExcluir = produtos.find(
+    (produto) => produto.id === deleteId,
+  );
 
   const produtosAtivos = useMemo(() => {
-    return produtos.filter((produto) => produto.active).length;
+    return produtos.filter(
+      (produto) => produto.active,
+    ).length;
   }, [produtos]);
 
   const produtosSemEstoque = useMemo(() => {
-    return produtos.filter((produto) => produto.stockQuantity <= 0).length;
+    return produtos.filter(
+      (produto) =>
+        produto.stockQuantity <= 0,
+    ).length;
   }, [produtos]);
 
   const resetForm = () => {
@@ -60,17 +74,33 @@ export function ProdutosAdmin() {
   };
 
   const fetchProdutos = async () => {
-    const response = await api.get('/produtos');
-    const content = response.data.content || response.data;
+    const response =
+      await api.get('/produtos/admin');
 
-    setProdutos(Array.isArray(content) ? content : []);
+    const content =
+      response.data.content ||
+      response.data;
+
+    setProdutos(
+      Array.isArray(content)
+        ? content
+        : [],
+    );
   };
 
   const fetchCategorias = async () => {
-    const response = await api.get('/categorias');
-    const content = response.data.content || response.data;
+    const response =
+      await api.get('/categorias');
 
-    setCategorias(Array.isArray(content) ? content : []);
+    const content =
+      response.data.content ||
+      response.data;
+
+    setCategorias(
+      Array.isArray(content)
+        ? content
+        : [],
+    );
   };
 
   const fetchData = async () => {
@@ -78,20 +108,31 @@ export function ProdutosAdmin() {
       setError('');
       setLoading(true);
 
-      await Promise.all([fetchProdutos(), fetchCategorias()]);
+      await Promise.all([
+        fetchProdutos(),
+        fetchCategorias(),
+      ]);
     } catch (err) {
-      console.error('Erro ao carregar dados do admin de produtos:', err);
-      setError('Erro ao carregar produtos e categorias.');
+      console.error(
+        'Erro ao carregar dados do admin de produtos:',
+        err,
+      );
+
+      setError(
+        'Erro ao carregar produtos e categorias.',
+      );
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
+    void fetchData();
   }, []);
 
-  const handleSubmit = async (event: React.FormEvent) => {
+  const handleSubmit = async (
+    event: React.FormEvent,
+  ) => {
     event.preventDefault();
 
     try {
@@ -101,86 +142,138 @@ export function ProdutosAdmin() {
 
       const payload = {
         name: formData.name.trim(),
-        description: formData.description.trim() || undefined,
+        description:
+          formData.description.trim() ||
+          undefined,
         price: Number(formData.price),
-        stockQuantity: Number(formData.stockQuantity),
-        categoryId: Number(formData.categoryId),
-        imageUrl: formData.imageUrl.trim() || undefined,
+        stockQuantity: Number(
+          formData.stockQuantity,
+        ),
+        categoryId: Number(
+          formData.categoryId,
+        ),
+        imageUrl:
+          formData.imageUrl.trim() ||
+          undefined,
         active: formData.active,
       };
 
-      if (editingId) {
-        await api.put(`/produtos/${editingId}`, payload);
-        setSuccess('Produto atualizado com sucesso.');
+      if (editingId !== null) {
+        await api.put(
+          `/produtos/${editingId}`,
+          payload,
+        );
+
+        setSuccess(
+          'Produto atualizado com sucesso.',
+        );
       } else {
-        await api.post('/produtos', payload);
-        setSuccess('Produto criado com sucesso.');
+        await api.post(
+          '/produtos',
+          payload,
+        );
+
+        setSuccess(
+          'Produto criado com sucesso.',
+        );
       }
 
       resetForm();
+
       await fetchProdutos();
     } catch (err: any) {
-      console.error('Erro ao salvar produto:', {
-        statusCode: err.response?.status,
-        data: err.response?.data,
-        message: err.message,
-      });
+      console.error(
+        'Erro ao salvar produto:',
+        {
+          statusCode:
+            err.response?.status,
+          data:
+            err.response?.data,
+          message:
+            err.message,
+        },
+      );
 
       setError(
         err.response?.data?.message ||
           err.response?.data?.error ||
-          'Erro ao salvar produto.'
+          'Erro ao salvar produto.',
       );
     } finally {
       setSaving(false);
     }
   };
 
-  const handleEdit = (produto: Produto) => {
+  const handleEdit = (
+    produto: Produto,
+  ) => {
     setError('');
     setSuccess('');
     setEditingId(produto.id);
 
     setFormData({
       name: produto.name,
-      description: produto.description || '',
+      description:
+        produto.description || '',
       price: String(produto.price),
-      stockQuantity: String(produto.stockQuantity),
-      categoryId: String(produto.category?.id || ''),
-      imageUrl: produto.imageUrl || '',
+      stockQuantity: String(
+        produto.stockQuantity,
+      ),
+      categoryId: String(
+        produto.category?.id || '',
+      ),
+      imageUrl:
+        produto.imageUrl || '',
       active: produto.active,
     });
 
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
   };
 
-  const handleConfirmDelete = async () => {
-    if (!deleteId) return;
+  const handleConfirmDelete =
+    async () => {
+      if (deleteId === null) {
+        return;
+      }
 
-    try {
-      setError('');
-      setSuccess('');
+      try {
+        setError('');
+        setSuccess('');
 
-      await api.delete(`/produtos/${deleteId}`);
+        await api.delete(
+          `/produtos/${deleteId}`,
+        );
 
-      setSuccess('Produto excluído com sucesso.');
-      setDeleteId(null);
+        setSuccess(
+          'Produto excluído ou desativado com sucesso.',
+        );
 
-      await fetchProdutos();
-    } catch (err: any) {
-      console.error('Erro ao excluir produto:', {
-        statusCode: err.response?.status,
-        data: err.response?.data,
-        message: err.message,
-      });
+        setDeleteId(null);
 
-      setError(
-        err.response?.data?.message ||
-          err.response?.data?.error ||
-          'Erro ao excluir produto.'
-      );
-    }
-  };
+        await fetchProdutos();
+      } catch (err: any) {
+        console.error(
+          'Erro ao excluir produto:',
+          {
+            statusCode:
+              err.response?.status,
+            data:
+              err.response?.data,
+            message:
+              err.message,
+          },
+        );
+
+        setError(
+          err.response?.data?.message ||
+            err.response?.data?.error ||
+            'Erro ao excluir produto.',
+        );
+      }
+    };
 
   if (loading) {
     return (
@@ -207,7 +300,8 @@ export function ProdutosAdmin() {
           </h2>
 
           <p className="mt-2 text-sm text-gray-500">
-            Cadastre, edite e acompanhe os produtos exibidos na loja.
+            Cadastre, edite e acompanhe
+            os produtos exibidos na loja.
           </p>
         </div>
 
@@ -216,21 +310,30 @@ export function ProdutosAdmin() {
             <p className="text-2xl font-black text-gray-950">
               {produtos.length}
             </p>
-            <p className="text-xs font-bold text-gray-500">Total</p>
+
+            <p className="text-xs font-bold text-gray-500">
+              Total
+            </p>
           </div>
 
           <div className="rounded-2xl border border-green-100 bg-green-50 px-4 py-3">
             <p className="text-2xl font-black text-green-700">
               {produtosAtivos}
             </p>
-            <p className="text-xs font-bold text-green-700">Ativos</p>
+
+            <p className="text-xs font-bold text-green-700">
+              Ativos
+            </p>
           </div>
 
           <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3">
             <p className="text-2xl font-black text-red-700">
               {produtosSemEstoque}
             </p>
-            <p className="text-xs font-bold text-red-700">Sem estoque</p>
+
+            <p className="text-xs font-bold text-red-700">
+              Sem estoque
+            </p>
           </div>
         </div>
       </div>
@@ -250,15 +353,21 @@ export function ProdutosAdmin() {
       <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
         <div className="mb-5 flex flex-col gap-1">
           <h3 className="text-xl font-black text-gray-950">
-            {editingId ? 'Editar produto' : 'Novo produto'}
+            {editingId !== null
+              ? 'Editar produto'
+              : 'Novo produto'}
           </h3>
 
           <p className="text-sm text-gray-500">
-            Preencha as informações que serão exibidas para os clientes.
+            Preencha as informações que
+            serão exibidas para os clientes.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="grid gap-4 lg:grid-cols-4">
+        <form
+          onSubmit={handleSubmit}
+          className="grid gap-4 lg:grid-cols-4"
+        >
           <div className="lg:col-span-2">
             <label className="mb-2 block text-sm font-black text-gray-700">
               Nome
@@ -269,7 +378,11 @@ export function ProdutosAdmin() {
               placeholder="Ex: Mel Silvestre"
               value={formData.name}
               onChange={(event) =>
-                setFormData({ ...formData, name: event.target.value })
+                setFormData({
+                  ...formData,
+                  name:
+                    event.target.value,
+                })
               }
               className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
               required
@@ -288,7 +401,11 @@ export function ProdutosAdmin() {
               placeholder="89.90"
               value={formData.price}
               onChange={(event) =>
-                setFormData({ ...formData, price: event.target.value })
+                setFormData({
+                  ...formData,
+                  price:
+                    event.target.value,
+                })
               }
               className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
               required
@@ -304,11 +421,14 @@ export function ProdutosAdmin() {
               type="number"
               min="0"
               placeholder="10"
-              value={formData.stockQuantity}
+              value={
+                formData.stockQuantity
+              }
               onChange={(event) =>
                 setFormData({
                   ...formData,
-                  stockQuantity: event.target.value,
+                  stockQuantity:
+                    event.target.value,
                 })
               }
               className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
@@ -322,19 +442,33 @@ export function ProdutosAdmin() {
             </label>
 
             <select
-              value={formData.categoryId}
+              value={
+                formData.categoryId
+              }
               onChange={(event) =>
-                setFormData({ ...formData, categoryId: event.target.value })
+                setFormData({
+                  ...formData,
+                  categoryId:
+                    event.target.value,
+                })
               }
               className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
               required
             >
-              <option value="">Selecione a categoria</option>
-              {categorias.map((categoria) => (
-                <option key={categoria.id} value={categoria.id}>
-                  {categoria.name}
-                </option>
-              ))}
+              <option value="">
+                Selecione a categoria
+              </option>
+
+              {categorias.map(
+                (categoria) => (
+                  <option
+                    key={categoria.id}
+                    value={categoria.id}
+                  >
+                    {categoria.name}
+                  </option>
+                ),
+              )}
             </select>
           </div>
 
@@ -348,7 +482,11 @@ export function ProdutosAdmin() {
               placeholder="https://..."
               value={formData.imageUrl}
               onChange={(event) =>
-                setFormData({ ...formData, imageUrl: event.target.value })
+                setFormData({
+                  ...formData,
+                  imageUrl:
+                    event.target.value,
+                })
               }
               className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
             />
@@ -362,9 +500,15 @@ export function ProdutosAdmin() {
             <textarea
               rows={4}
               placeholder="Descreva o produto..."
-              value={formData.description}
+              value={
+                formData.description
+              }
               onChange={(event) =>
-                setFormData({ ...formData, description: event.target.value })
+                setFormData({
+                  ...formData,
+                  description:
+                    event.target.value,
+                })
               }
               className="w-full resize-none rounded-2xl border border-gray-200 bg-white px-4 py-3 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
             />
@@ -376,7 +520,11 @@ export function ProdutosAdmin() {
               type="checkbox"
               checked={formData.active}
               onChange={(event) =>
-                setFormData({ ...formData, active: event.target.checked })
+                setFormData({
+                  ...formData,
+                  active:
+                    event.target.checked,
+                })
               }
               className="h-4 w-4 accent-amber-700"
             />
@@ -397,12 +545,12 @@ export function ProdutosAdmin() {
             >
               {saving
                 ? 'Salvando...'
-                : editingId
+                : editingId !== null
                   ? 'Salvar alterações'
                   : 'Criar produto'}
             </button>
 
-            {editingId && (
+            {editingId !== null && (
               <button
                 type="button"
                 onClick={resetForm}
@@ -424,7 +572,8 @@ export function ProdutosAdmin() {
             </h3>
 
             <p className="text-sm text-gray-500">
-              Gerencie os produtos já disponíveis no sistema.
+              Gerencie produtos ativos e
+              inativos do sistema.
             </p>
           </div>
         </div>
@@ -438,100 +587,143 @@ export function ProdutosAdmin() {
             <table className="w-full min-w-[900px] border-collapse">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-black uppercase tracking-wide text-gray-500">
-                  <th className="px-6 py-4">Produto</th>
-                  <th className="px-6 py-4">Preço</th>
-                  <th className="px-6 py-4">Estoque</th>
-                  <th className="px-6 py-4">Categoria</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4 text-right">Ações</th>
+                  <th className="px-6 py-4">
+                    Produto
+                  </th>
+
+                  <th className="px-6 py-4">
+                    Preço
+                  </th>
+
+                  <th className="px-6 py-4">
+                    Estoque
+                  </th>
+
+                  <th className="px-6 py-4">
+                    Categoria
+                  </th>
+
+                  <th className="px-6 py-4">
+                    Status
+                  </th>
+
+                  <th className="px-6 py-4 text-right">
+                    Ações
+                  </th>
                 </tr>
               </thead>
 
               <tbody>
-                {produtos.map((produto) => (
-                  <tr
-                    key={produto.id}
-                    className="border-b border-gray-100 transition hover:bg-gray-50"
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-xl">
-                          {produto.imageUrl ? (
-                            <img
-                              src={produto.imageUrl}
-                              alt={produto.name}
-                              className="h-full w-full rounded-2xl object-cover"
-                            />
-                          ) : (
-                            '🍯'
-                          )}
+                {produtos.map(
+                  (produto) => (
+                    <tr
+                      key={produto.id}
+                      className="border-b border-gray-100 transition hover:bg-gray-50"
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-xl">
+                            {produto.imageUrl ? (
+                              <img
+                                src={
+                                  produto.imageUrl
+                                }
+                                alt={
+                                  produto.name
+                                }
+                                className="h-full w-full rounded-2xl object-cover"
+                              />
+                            ) : (
+                              '🍯'
+                            )}
+                          </div>
+
+                          <div>
+                            <p className="font-black text-gray-900">
+                              {
+                                produto.name
+                              }
+                            </p>
+
+                            <p className="line-clamp-1 max-w-sm text-sm text-gray-500">
+                              {produto.description ||
+                                'Sem descrição'}
+                            </p>
+                          </div>
                         </div>
+                      </td>
 
-                        <div>
-                          <p className="font-black text-gray-900">
-                            {produto.name}
-                          </p>
+                      <td className="px-6 py-4 font-bold text-gray-800">
+                        {formatCurrency(
+                          produto.price,
+                        )}
+                      </td>
 
-                          <p className="line-clamp-1 max-w-sm text-sm text-gray-500">
-                            {produto.description || 'Sem descrição'}
-                          </p>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-black ${
+                            produto.stockQuantity >
+                            0
+                              ? 'bg-green-50 text-green-700'
+                              : 'bg-red-50 text-red-700'
+                          }`}
+                        >
+                          {
+                            produto.stockQuantity
+                          }
+                        </span>
+                      </td>
+
+                      <td className="px-6 py-4 text-sm font-semibold text-gray-600">
+                        {produto.category
+                          ?.name ||
+                          'Sem categoria'}
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-black ${
+                            produto.active
+                              ? 'bg-green-50 text-green-700'
+                              : 'bg-gray-100 text-gray-500'
+                          }`}
+                        >
+                          {produto.active
+                            ? 'Ativo'
+                            : 'Inativo'}
+                        </span>
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleEdit(
+                                produto,
+                              )
+                            }
+                            className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-black text-gray-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-50 hover:shadow-md"
+                          >
+                            Editar
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setDeleteId(
+                                produto.id,
+                              )
+                            }
+                            className="rounded-xl border border-red-100 bg-red-50 px-4 py-2 text-sm font-black text-red-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-red-100 hover:shadow-md"
+                          >
+                            Excluir
+                          </button>
                         </div>
-                      </div>
-                    </td>
-
-                    <td className="px-6 py-4 font-bold text-gray-800">
-                      {formatCurrency(produto.price)}
-                    </td>
-
-                    <td className="px-6 py-4">
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-black ${
-                          produto.stockQuantity > 0
-                            ? 'bg-green-50 text-green-700'
-                            : 'bg-red-50 text-red-700'
-                        }`}
-                      >
-                        {produto.stockQuantity}
-                      </span>
-                    </td>
-
-                    <td className="px-6 py-4 text-sm font-semibold text-gray-600">
-                      {produto.category?.name || 'Sem categoria'}
-                    </td>
-
-                    <td className="px-6 py-4">
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-black ${
-                          produto.active
-                            ? 'bg-green-50 text-green-700'
-                            : 'bg-gray-100 text-gray-500'
-                        }`}
-                      >
-                        {produto.active ? 'Ativo' : 'Inativo'}
-                      </span>
-                    </td>
-
-                    <td className="px-6 py-4">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleEdit(produto)}
-                          className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-black text-gray-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-50 hover:shadow-md"
-                        >
-                          Editar
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setDeleteId(produto.id)}
-                          className="rounded-xl border border-red-100 bg-red-50 px-4 py-2 text-sm font-black text-red-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-red-100 hover:shadow-md"
-                        >
-                          Excluir
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  ),
+                )}
               </tbody>
             </table>
           </div>
@@ -539,16 +731,21 @@ export function ProdutosAdmin() {
       </section>
 
       <ConfirmModal
-        open={!!deleteId}
+        open={deleteId !== null}
         title="Excluir produto?"
         description={`O produto "${
-          produtoParaExcluir?.name || 'selecionado'
-        }" será removido do sistema. Essa ação não pode ser desfeita.`}
-        confirmText="Sim, excluir"
+          produtoParaExcluir?.name ||
+          'selecionado'
+        }" será excluído definitivamente se não possuir histórico de pedidos. Caso possua, será apenas desativado para preservar o histórico.`}
+        confirmText="Confirmar"
         cancelText="Cancelar"
         variant="danger"
-        onConfirm={handleConfirmDelete}
-        onCancel={() => setDeleteId(null)}
+        onConfirm={
+          handleConfirmDelete
+        }
+        onCancel={() =>
+          setDeleteId(null)
+        }
       />
     </div>
   );
