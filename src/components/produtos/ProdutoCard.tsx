@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+
 import type { Produto } from '../../types/produto';
 import { formatCurrency } from '../../utils/formatCurrency';
 
@@ -15,56 +16,74 @@ export function ProdutoCard({
   isLogged,
   onAddToCart,
 }: ProdutoCardProps) {
-  const semEstoque = produto.stockQuantity <= 0;
-  const averageRating = produto.averageRating ?? 0;
-  const reviewsCount = produto.reviewsCount ?? 0;
+  const semEstoque =
+    produto.stockQuantity <= 0;
+
+  const averageRating =
+    produto.averageRating ?? 0;
+
+  const reviewsCount =
+    produto.reviewsCount ?? 0;
 
   const renderStars = () => {
-    const roundedRating = Math.round(averageRating);
+    const roundedRating =
+      Math.round(averageRating);
 
-    return Array.from({ length: 5 }, (_, index) => {
-      const filled = index < roundedRating;
+    return Array.from(
+      { length: 5 },
+      (_, index) => {
+        const filled =
+          index < roundedRating;
 
-      return (
-        <span
-          key={index}
-          className={filled ? 'text-yellow-400' : 'text-gray-500'}
-        >
-          ★
-        </span>
-      );
-    });
+        return (
+          <span
+            key={index}
+            className={
+              filled
+                ? 'text-yellow-400'
+                : 'text-gray-500'
+            }
+          >
+            ★
+          </span>
+        );
+      },
+    );
   };
 
   return (
     <article
       className="group animate-fade-in-up overflow-hidden rounded-[2rem] border border-amber-200 bg-white shadow-lg transition duration-300 hover:-translate-y-2 hover:shadow-2xl dark:border-amber-800 dark:bg-gray-900"
-      style={{ animationDelay: `${index * 0.06}s` }}
+      style={{
+        animationDelay:
+          `${index * 0.06}s`,
+      }}
     >
-      <div className="relative flex h-56 items-center justify-center overflow-hidden bg-gradient-to-br from-amber-100 via-yellow-100 to-orange-100 dark:from-amber-950 dark:via-gray-800 dark:to-gray-900">
+      <div className="relative flex h-64 items-center justify-center overflow-hidden bg-gradient-to-br from-amber-100 via-yellow-100 to-orange-100 p-3 dark:from-amber-950 dark:via-gray-800 dark:to-gray-900">
         {produto.imageUrl ? (
           <img
             src={produto.imageUrl}
             alt={produto.name}
-            className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
+            className="relative z-10 h-full w-full object-contain transition duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="relative">
             <span className="text-8xl drop-shadow-md transition duration-500 group-hover:scale-110">
               🍯
             </span>
-            <div className="absolute inset-0 rounded-full bg-amber-300/20 blur-2xl animate-pulse-gentle" />
+
+            <div className="absolute inset-0 animate-pulse-gentle rounded-full bg-amber-300/20 blur-2xl" />
           </div>
         )}
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
 
-        <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-amber-900 shadow-md backdrop-blur-md">
+        <span className="absolute left-4 top-4 z-20 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-amber-900 shadow-md backdrop-blur-md">
           Artesanal
         </span>
 
         {semEstoque && (
-          <span className="absolute right-4 top-4 rounded-full bg-red-500 px-3 py-1 text-xs font-black text-white shadow-md">
+          <span className="absolute right-4 top-4 z-20 rounded-full bg-red-500 px-3 py-1 text-xs font-black text-white shadow-md">
             Sem estoque
           </span>
         )}
@@ -88,7 +107,8 @@ export function ProdutoCard({
           </span>
 
           <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">
-            Estoque: {produto.stockQuantity}
+            Estoque:{' '}
+            {produto.stockQuantity}
           </span>
         </div>
 
@@ -101,11 +121,15 @@ export function ProdutoCard({
             {averageRating.toFixed(1)}
           </span>
 
-          <span className="text-gray-400">·</span>
+          <span className="text-gray-400">
+            ·
+          </span>
 
           <span className="font-medium text-gray-500 dark:text-gray-400">
             {reviewsCount}{' '}
-            {reviewsCount === 1 ? 'avaliação' : 'avaliações'}
+            {reviewsCount === 1
+              ? 'avaliação'
+              : 'avaliações'}
           </span>
         </div>
 
@@ -116,7 +140,9 @@ export function ProdutoCard({
             </p>
 
             <p className="text-3xl font-black text-amber-700 dark:text-amber-300">
-              {formatCurrency(produto.price)}
+              {formatCurrency(
+                produto.price,
+              )}
             </p>
           </div>
 
@@ -137,6 +163,7 @@ export function ProdutoCard({
             className="group/details inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-white px-5 py-4 font-black text-amber-800 shadow-sm transition duration-300 hover:-translate-y-1 hover:bg-amber-50 hover:shadow-lg dark:border-amber-800 dark:bg-gray-950 dark:text-amber-300 dark:hover:bg-gray-900"
           >
             Ver detalhes
+
             <span className="transition group-hover/details:translate-x-1">
               →
             </span>
@@ -144,7 +171,9 @@ export function ProdutoCard({
 
           <button
             type="button"
-            onClick={() => onAddToCart(produto)}
+            onClick={() =>
+              onAddToCart(produto)
+            }
             disabled={semEstoque}
             className={`group/btn relative w-full overflow-hidden rounded-2xl px-5 py-4 font-black shadow-lg transition duration-300 ${
               semEstoque

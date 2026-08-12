@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+
 import type { Produto } from '../../../types/produto';
 import { formatCurrency } from '../../../utils/formatCurrency';
 
@@ -13,24 +14,26 @@ export function ProdutoDetalheMain({
   isLogged,
   onAddToCart,
 }: ProdutoDetalheMainProps) {
-  const semEstoque = produto.stockQuantity <= 0;
+  const semEstoque =
+    produto.stockQuantity <= 0;
 
   return (
     <section className="overflow-hidden rounded-[2rem] border border-amber-200 bg-white/90 shadow-2xl backdrop-blur-xl dark:border-amber-800 dark:bg-gray-900/90">
       <div className="grid gap-0 lg:grid-cols-[0.95fr_1.05fr]">
-        <div className="relative flex min-h-[420px] items-center justify-center overflow-hidden bg-gradient-to-br from-amber-100 via-yellow-100 to-orange-100 dark:from-amber-950 dark:via-gray-900 dark:to-gray-950">
-          <div className="absolute -left-20 top-10 h-72 w-72 rounded-full bg-yellow-300/30 blur-3xl animate-pulse-gentle" />
-          <div className="absolute -right-20 bottom-10 h-72 w-72 rounded-full bg-orange-300/30 blur-3xl animate-pulse-gentle" />
+        <div className="relative flex h-[360px] items-center justify-center overflow-hidden bg-gradient-to-br from-amber-100 via-yellow-100 to-orange-100 p-4 sm:h-[460px] lg:h-[560px] dark:from-amber-950 dark:via-gray-900 dark:to-gray-950">
+          <div className="absolute -left-20 top-10 h-72 w-72 animate-pulse-gentle rounded-full bg-yellow-300/30 blur-3xl" />
+
+          <div className="absolute -right-20 bottom-10 h-72 w-72 animate-pulse-gentle rounded-full bg-orange-300/30 blur-3xl" />
 
           {produto.imageUrl ? (
             <img
               src={produto.imageUrl}
               alt={produto.name}
-              className="relative z-10 h-full w-full object-cover"
+              className="relative z-10 h-full w-full object-contain"
             />
           ) : (
             <div className="relative z-10 text-center">
-              <div className="text-9xl drop-shadow-2xl animate-bounce-soft">
+              <div className="animate-bounce-soft text-9xl drop-shadow-2xl">
                 🍯
               </div>
 
@@ -71,7 +74,8 @@ export function ProdutoDetalheMain({
             </span>
 
             <span className="rounded-full bg-blue-100 px-4 py-2 text-sm font-bold text-blue-800">
-              📦 Estoque: {produto.stockQuantity}
+              📦 Estoque:{' '}
+              {produto.stockQuantity}
             </span>
           </div>
 
@@ -81,11 +85,15 @@ export function ProdutoDetalheMain({
             </p>
 
             <p className="mt-1 text-5xl font-black text-amber-700 dark:text-amber-300">
-              {formatCurrency(produto.price)}
+              {formatCurrency(
+                produto.price,
+              )}
             </p>
 
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-              Valor sem taxa de entrega. Entrega a combinar com o vendedor.
+              Valor sem taxa de entrega.
+              Entrega a combinar com o
+              vendedor.
             </p>
           </div>
 
