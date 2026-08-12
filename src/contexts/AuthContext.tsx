@@ -1,7 +1,5 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
@@ -12,36 +10,21 @@ import { setAuthToken } from '../services/api';
 import {
   decodeToken,
   type TokenPayload,
-  type UserRole,
 } from '../utils/decodeToken';
-
-interface AuthUser {
-  id: number;
-  email: string;
-  role: UserRole;
-}
+import {
+  AuthContext,
+  type AuthContextData,
+  type AuthUser,
+} from './auth-context';
 
 interface AuthSession {
   token: string | null;
   user: AuthUser | null;
 }
 
-interface AuthContextData {
-  user: AuthUser | null;
-  token: string | null;
-  isAuthenticated: boolean;
-  isAdmin: boolean;
-  signIn: (token: string) => void;
-  signOut: () => void;
-}
-
 interface AuthProviderProps {
   children: ReactNode;
 }
-
-const AuthContext = createContext<
-  AuthContextData | undefined
->(undefined);
 
 function clearStoredSession(): AuthSession {
   localStorage.removeItem('token');
@@ -66,7 +49,8 @@ function createUserFromToken(
 }
 
 function getStoredSession(): AuthSession {
-  const storedToken = localStorage.getItem('token');
+  const storedToken =
+    localStorage.getItem('token');
 
   if (!storedToken) {
     setAuthToken(null);
@@ -77,14 +61,16 @@ function getStoredSession(): AuthSession {
     };
   }
 
-  const decodedToken = decodeToken(storedToken);
+  const decodedToken =
+    decodeToken(storedToken);
 
   if (!decodedToken) {
     return clearStoredSession();
   }
 
   const tokenExpired =
-    decodedToken.exp * 1000 <= Date.now();
+    decodedToken.exp * 1000 <=
+    Date.now();
 
   if (tokenExpired) {
     return clearStoredSession();
@@ -94,7 +80,10 @@ function getStoredSession(): AuthSession {
 
   return {
     token: storedToken,
-    user: createUserFromToken(decodedToken),
+    user:
+      createUserFromToken(
+        decodedToken,
+      ),
   };
 }
 
@@ -102,7 +91,9 @@ export function AuthProvider({
   children,
 }: AuthProviderProps) {
   const [session, setSession] =
-    useState<AuthSession>(getStoredSession);
+    useState<AuthSession>(
+      getStoredSession,
+    );
 
   const signIn = useCallback(
     (newToken: string) => {
@@ -126,7 +117,9 @@ export function AuthProvider({
       }
 
       const authenticatedUser =
-        createUserFromToken(decodedToken);
+        createUserFromToken(
+          decodedToken,
+        );
 
       localStorage.setItem(
         'token',
@@ -148,14 +141,20 @@ export function AuthProvider({
     [],
   );
 
-  const signOut = useCallback(() => {
-    setSession(clearStoredSession());
-  }, []);
+  const signOut =
+    useCallback(() => {
+      setSession(
+        clearStoredSession(),
+      );
+    }, []);
 
   useEffect(() => {
-    const handleUnauthorized = () => {
-      setSession(clearStoredSession());
-    };
+    const handleUnauthorized =
+      () => {
+        setSession(
+          clearStoredSession(),
+        );
+      };
 
     window.addEventListener(
       'auth:unauthorized',
@@ -175,11 +174,14 @@ export function AuthProvider({
       () => ({
         user: session.user,
         token: session.token,
-        isAuthenticated: Boolean(
-          session.token && session.user,
-        ),
+        isAuthenticated:
+          Boolean(
+            session.token &&
+              session.user,
+          ),
         isAdmin:
-          session.user?.role === 'ADMIN',
+          session.user?.role ===
+          'ADMIN',
         signIn,
         signOut,
       }),
@@ -197,17 +199,4 @@ export function AuthProvider({
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth(): AuthContextData {
-  const context =
-    useContext(AuthContext);
-
-  if (!context) {
-    throw new Error(
-      'useAuth deve ser utilizado dentro de AuthProvider.',
-    );
-  }
-
-  return context;
 }

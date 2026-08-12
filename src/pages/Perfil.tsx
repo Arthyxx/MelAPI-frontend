@@ -1,5 +1,11 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import {
+  useEffect,
+  useState,
+  type FormEvent,
+} from 'react';
+import { isAxiosError } from 'axios';
 import { Link } from 'react-router-dom';
+
 import { api } from '../services/api';
 
 interface PerfilFormData {
@@ -17,76 +23,188 @@ interface PerfilFormData {
   role?: string;
 }
 
-export function Perfil() {
-  const [formData, setFormData] = useState<PerfilFormData>({
-    name: '',
-    email: '',
-    phone: '',
-    street: '',
-    addressNumber: '',
-    complement: '',
-    neighborhood: '',
-    city: '',
-    state: '',
-    zipCode: '',
-  });
+interface ApiErrorResponse {
+  message?: string | string[];
+  error?: string;
+}
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+function getApiErrorMessage(
+  error: unknown,
+  fallback: string,
+) {
+  if (
+    !isAxiosError<ApiErrorResponse>(
+      error,
+    )
+  ) {
+    return fallback;
+  }
+
+  const message =
+    error.response?.data?.message;
+
+  if (Array.isArray(message)) {
+    return message.join(' ');
+  }
+
+  if (typeof message === 'string') {
+    return message;
+  }
+
+  const apiError =
+    error.response?.data?.error;
+
+  if (typeof apiError === 'string') {
+    return apiError;
+  }
+
+  return fallback;
+}
+
+function logApiError(
+  title: string,
+  error: unknown,
+) {
+  if (
+    isAxiosError<ApiErrorResponse>(
+      error,
+    )
+  ) {
+    console.error(title, {
+      statusCode:
+        error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+    });
+
+    return;
+  }
+
+  console.error(title, {
+    message:
+      error instanceof Error
+        ? error.message
+        : 'Erro desconhecido.',
+  });
+}
+
+export function Perfil() {
+  const [formData, setFormData] =
+    useState<PerfilFormData>({
+      name: '',
+      email: '',
+      phone: '',
+      street: '',
+      addressNumber: '',
+      complement: '',
+      neighborhood: '',
+      city: '',
+      state: '',
+      zipCode: '',
+    });
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [saving, setSaving] =
+    useState(false);
+
+  const [error, setError] =
+    useState('');
+
+  const [success, setSuccess] =
+    useState('');
 
   useEffect(() => {
-    const fetchPerfil = async () => {
-      try {
-        setError('');
-        setLoading(true);
+    const fetchPerfil =
+      async () => {
+        try {
+          setError('');
+          setLoading(true);
 
-        const response = await api.get('/clientes/me');
+          const response =
+            await api.get<PerfilFormData>(
+              '/clientes/me',
+            );
 
-        setFormData({
-          id: response.data.id,
-          name: response.data.name || '',
-          email: response.data.email || '',
-          phone: response.data.phone || '',
-          street: response.data.street || '',
-          addressNumber: response.data.addressNumber || '',
-          complement: response.data.complement || '',
-          neighborhood: response.data.neighborhood || '',
-          city: response.data.city || '',
-          state: response.data.state || '',
-          zipCode: response.data.zipCode || '',
-          role: response.data.role,
-        });
-      } catch (err: any) {
-        console.error('Erro ao carregar perfil:', {
-          statusCode: err.response?.status,
-          data: err.response?.data,
-          message: err.message,
-        });
+          setFormData({
+            id: response.data.id,
+            name:
+              response.data.name ||
+              '',
+            email:
+              response.data.email ||
+              '',
+            phone:
+              response.data.phone ||
+              '',
+            street:
+              response.data.street ||
+              '',
+            addressNumber:
+              response.data
+                .addressNumber || '',
+            complement:
+              response.data
+                .complement || '',
+            neighborhood:
+              response.data
+                .neighborhood || '',
+            city:
+              response.data.city ||
+              '',
+            state:
+              response.data.state ||
+              '',
+            zipCode:
+              response.data.zipCode ||
+              '',
+            role:
+              response.data.role,
+          });
+        } catch (err: unknown) {
+          logApiError(
+            'Erro ao carregar perfil:',
+            err,
+          );
 
-        setError('Erro ao carregar dados do perfil.');
-      } finally {
-        setLoading(false);
-      }
-    };
+          setError(
+            getApiErrorMessage(
+              err,
+              'Erro ao carregar dados do perfil.',
+            ),
+          );
+        } finally {
+          setLoading(false);
+        }
+      };
 
-    fetchPerfil();
+    void fetchPerfil();
   }, []);
 
-  const handleChange = (field: keyof PerfilFormData, value: string) => {
+  const handleChange = (
+    field: keyof PerfilFormData,
+    value: string,
+  ) => {
     let formattedValue = value;
 
     if (field === 'phone') {
-      formattedValue = value.replace(/\D/g, '').slice(0, 11);
+      formattedValue = value
+        .replace(/\D/g, '')
+        .slice(0, 11);
     }
 
     if (field === 'zipCode') {
-      formattedValue = value.replace(/\D/g, '').slice(0, 8);
+      formattedValue = value
+        .replace(/\D/g, '')
+        .slice(0, 8);
     }
 
     if (field === 'state') {
-      formattedValue = value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2);
+      formattedValue = value
+        .toUpperCase()
+        .replace(/[^A-Z]/g, '')
+        .slice(0, 2);
     }
 
     setFormData((prev) => ({
@@ -95,7 +213,10 @@ export function Perfil() {
     }));
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (
+    event:
+      FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault();
 
     try {
@@ -107,41 +228,61 @@ export function Perfil() {
         name: formData.name,
         phone: formData.phone,
         street: formData.street,
-        addressNumber: formData.addressNumber,
-        complement: formData.complement,
-        neighborhood: formData.neighborhood,
+        addressNumber:
+          formData.addressNumber,
+        complement:
+          formData.complement,
+        neighborhood:
+          formData.neighborhood,
         city: formData.city,
         state: formData.state,
         zipCode: formData.zipCode,
       };
 
-      const response = await api.patch('/clientes/me', payload);
+      const response =
+        await api.patch<PerfilFormData>(
+          '/clientes/me',
+          payload,
+        );
 
       setFormData((prev) => ({
         ...prev,
         ...response.data,
-        phone: response.data.phone || '',
-        street: response.data.street || '',
-        addressNumber: response.data.addressNumber || '',
-        complement: response.data.complement || '',
-        neighborhood: response.data.neighborhood || '',
-        city: response.data.city || '',
-        state: response.data.state || '',
-        zipCode: response.data.zipCode || '',
+        phone:
+          response.data.phone || '',
+        street:
+          response.data.street || '',
+        addressNumber:
+          response.data
+            .addressNumber || '',
+        complement:
+          response.data
+            .complement || '',
+        neighborhood:
+          response.data
+            .neighborhood || '',
+        city:
+          response.data.city || '',
+        state:
+          response.data.state || '',
+        zipCode:
+          response.data.zipCode || '',
       }));
 
-      setSuccess('Perfil atualizado com sucesso!');
-    } catch (err: any) {
-      console.error('Erro ao atualizar perfil:', {
-        statusCode: err.response?.status,
-        data: err.response?.data,
-        message: err.message,
-      });
+      setSuccess(
+        'Perfil atualizado com sucesso!',
+      );
+    } catch (err: unknown) {
+      logApiError(
+        'Erro ao atualizar perfil:',
+        err,
+      );
 
       setError(
-        err.response?.data?.message ||
-          err.response?.data?.error ||
-          'Erro ao atualizar perfil. Verifique os dados e tente novamente.'
+        getApiErrorMessage(
+          err,
+          'Erro ao atualizar perfil. Verifique os dados e tente novamente.',
+        ),
       );
     } finally {
       setSaving(false);
@@ -161,7 +302,9 @@ export function Perfil() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 dark:from-gray-950 dark:via-gray-900 dark:to-amber-950">
         <div className="text-center">
-          <div className="mb-4 text-7xl animate-bounce-soft">👤</div>
+          <div className="mb-4 text-7xl animate-bounce-soft">
+            👤
+          </div>
 
           <p className="text-xl font-semibold text-amber-700 dark:text-amber-300">
             Carregando perfil...
@@ -174,7 +317,9 @@ export function Perfil() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 px-4 py-10 dark:from-gray-950 dark:via-gray-900 dark:to-amber-950">
       <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-amber-300/30 blur-3xl animate-pulse-gentle" />
+
       <div className="absolute -right-24 bottom-10 h-80 w-80 rounded-full bg-yellow-400/30 blur-3xl animate-pulse-gentle" />
+
       <div className="absolute left-1/2 top-1/3 h-48 w-48 rounded-full bg-orange-300/20 blur-3xl animate-spin-slow" />
 
       <main className="relative z-10 mx-auto max-w-5xl">
@@ -193,7 +338,9 @@ export function Perfil() {
             </h1>
 
             <p className="mt-2 text-gray-600 dark:text-gray-400">
-              Atualize seus dados pessoais e endereço de entrega.
+              Atualize seus dados
+              pessoais e endereço de
+              entrega.
             </p>
           </div>
 
@@ -215,7 +362,9 @@ export function Perfil() {
                 </h2>
 
                 <p className="mt-2 text-sm text-amber-50">
-                  Esses dados ajudam no contato e na entrega dos produtos.
+                  Esses dados ajudam no
+                  contato e na entrega
+                  dos produtos.
                 </p>
               </div>
 
@@ -240,7 +389,10 @@ export function Perfil() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-8">
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-8"
+            >
               <section className="animate-fade-in-up">
                 <div className="mb-4 flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-100 text-xl">
@@ -253,44 +405,92 @@ export function Perfil() {
                     </h3>
 
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Nome, e-mail e telefone de contato.
+                      Nome, e-mail e
+                      telefone de
+                      contato.
                     </p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
-                    <label className={labelClass}>Nome completo</label>
+                    <label
+                      className={
+                        labelClass
+                      }
+                    >
+                      Nome completo
+                    </label>
+
                     <input
                       type="text"
-                      value={formData.name}
-                      onChange={(e) => handleChange('name', e.target.value)}
-                      className={inputClass}
+                      value={
+                        formData.name
+                      }
+                      onChange={(e) =>
+                        handleChange(
+                          'name',
+                          e.target.value,
+                        )
+                      }
+                      className={
+                        inputClass
+                      }
                       required
                     />
                   </div>
 
                   <div>
-                    <label className={labelClass}>E-mail</label>
+                    <label
+                      className={
+                        labelClass
+                      }
+                    >
+                      E-mail
+                    </label>
+
                     <input
                       type="email"
-                      value={formData.email}
-                      className={disabledInputClass}
+                      value={
+                        formData.email
+                      }
+                      className={
+                        disabledInputClass
+                      }
                       disabled
                     />
+
                     <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      O e-mail não pode ser alterado por aqui.
+                      O e-mail não pode
+                      ser alterado por
+                      aqui.
                     </p>
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className={labelClass}>Telefone</label>
+                    <label
+                      className={
+                        labelClass
+                      }
+                    >
+                      Telefone
+                    </label>
+
                     <input
                       type="tel"
                       placeholder="85999999999"
-                      value={formData.phone}
-                      onChange={(e) => handleChange('phone', e.target.value)}
-                      className={inputClass}
+                      value={
+                        formData.phone
+                      }
+                      onChange={(e) =>
+                        handleChange(
+                          'phone',
+                          e.target.value,
+                        )
+                      }
+                      className={
+                        inputClass
+                      }
                     />
                   </div>
                 </div>
@@ -308,92 +508,202 @@ export function Perfil() {
                     </h3>
 
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Usado para facilitar a entrega dos pedidos.
+                      Usado para
+                      facilitar a
+                      entrega dos
+                      pedidos.
                     </p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
-                    <label className={labelClass}>CEP</label>
+                    <label
+                      className={
+                        labelClass
+                      }
+                    >
+                      CEP
+                    </label>
+
                     <input
                       type="text"
                       placeholder="60000000"
-                      value={formData.zipCode}
-                      onChange={(e) => handleChange('zipCode', e.target.value)}
-                      className={inputClass}
+                      value={
+                        formData.zipCode
+                      }
+                      onChange={(e) =>
+                        handleChange(
+                          'zipCode',
+                          e.target.value,
+                        )
+                      }
+                      className={
+                        inputClass
+                      }
                     />
                   </div>
 
                   <div>
-                    <label className={labelClass}>Estado</label>
+                    <label
+                      className={
+                        labelClass
+                      }
+                    >
+                      Estado
+                    </label>
+
                     <input
                       type="text"
                       placeholder="CE"
-                      value={formData.state}
-                      onChange={(e) => handleChange('state', e.target.value)}
-                      className={inputClass}
+                      value={
+                        formData.state
+                      }
+                      onChange={(e) =>
+                        handleChange(
+                          'state',
+                          e.target.value,
+                        )
+                      }
+                      className={
+                        inputClass
+                      }
                     />
                   </div>
 
                   <div>
-                    <label className={labelClass}>Cidade</label>
+                    <label
+                      className={
+                        labelClass
+                      }
+                    >
+                      Cidade
+                    </label>
+
                     <input
                       type="text"
                       placeholder="Fortaleza"
-                      value={formData.city}
-                      onChange={(e) => handleChange('city', e.target.value)}
-                      className={inputClass}
+                      value={
+                        formData.city
+                      }
+                      onChange={(e) =>
+                        handleChange(
+                          'city',
+                          e.target.value,
+                        )
+                      }
+                      className={
+                        inputClass
+                      }
                     />
                   </div>
 
                   <div>
-                    <label className={labelClass}>Bairro</label>
+                    <label
+                      className={
+                        labelClass
+                      }
+                    >
+                      Bairro
+                    </label>
+
                     <input
                       type="text"
                       placeholder="Centro"
-                      value={formData.neighborhood}
-                      onChange={(e) =>
-                        handleChange('neighborhood', e.target.value)
+                      value={
+                        formData.neighborhood
                       }
-                      className={inputClass}
+                      onChange={(e) =>
+                        handleChange(
+                          'neighborhood',
+                          e.target.value,
+                        )
+                      }
+                      className={
+                        inputClass
+                      }
                     />
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className={labelClass}>Rua</label>
+                    <label
+                      className={
+                        labelClass
+                      }
+                    >
+                      Rua
+                    </label>
+
                     <input
                       type="text"
                       placeholder="Rua das Flores"
-                      value={formData.street}
-                      onChange={(e) => handleChange('street', e.target.value)}
-                      className={inputClass}
+                      value={
+                        formData.street
+                      }
+                      onChange={(e) =>
+                        handleChange(
+                          'street',
+                          e.target.value,
+                        )
+                      }
+                      className={
+                        inputClass
+                      }
                     />
                   </div>
 
                   <div>
-                    <label className={labelClass}>Número</label>
+                    <label
+                      className={
+                        labelClass
+                      }
+                    >
+                      Número
+                    </label>
+
                     <input
                       type="text"
                       placeholder="123"
-                      value={formData.addressNumber}
-                      onChange={(e) =>
-                        handleChange('addressNumber', e.target.value)
+                      value={
+                        formData
+                          .addressNumber
                       }
-                      className={inputClass}
+                      onChange={(e) =>
+                        handleChange(
+                          'addressNumber',
+                          e.target.value,
+                        )
+                      }
+                      className={
+                        inputClass
+                      }
                     />
                   </div>
 
                   <div>
-                    <label className={labelClass}>Complemento</label>
+                    <label
+                      className={
+                        labelClass
+                      }
+                    >
+                      Complemento
+                    </label>
+
                     <input
                       type="text"
                       placeholder="Apartamento, bloco, referência..."
-                      value={formData.complement}
-                      onChange={(e) =>
-                        handleChange('complement', e.target.value)
+                      value={
+                        formData.complement
                       }
-                      className={inputClass}
+                      onChange={(e) =>
+                        handleChange(
+                          'complement',
+                          e.target.value,
+                        )
+                      }
+                      className={
+                        inputClass
+                      }
                     />
                   </div>
                 </div>
@@ -401,8 +711,13 @@ export function Perfil() {
 
               <div className="animate-fade-in-up delay-200 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Revise os dados antes de salvar. Entrega errada por endereço
-                  errado é uma tragédia logística perfeitamente evitável.
+                  Revise os dados antes
+                  de salvar. Entrega
+                  errada por endereço
+                  errado é uma tragédia
+                  logística
+                  perfeitamente
+                  evitável.
                 </p>
 
                 <button
@@ -421,6 +736,7 @@ export function Perfil() {
                     ) : (
                       <>
                         Salvar alterações
+
                         <span className="transition group-hover:translate-x-1">
                           →
                         </span>

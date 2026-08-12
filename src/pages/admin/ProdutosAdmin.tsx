@@ -209,33 +209,34 @@ export function ProdutosAdmin() {
     sort,
   ]);
 
-  const fetchCategorias = async () => {
-    try {
-      const response =
-        await api.get('/categorias');
-
-      const content =
-        response.data.content ||
-        response.data;
-
-      setCategorias(
-        Array.isArray(content)
-          ? content
-          : [],
-      );
-    } catch (requestError) {
-      console.error(
-        'Erro ao carregar categorias:',
-        requestError,
-      );
-
-      setError(
-        'Erro ao carregar categorias.',
-      );
-    }
-  };
-
   useEffect(() => {
+    const fetchCategorias =
+      async () => {
+        try {
+          const response =
+            await api.get('/categorias');
+
+          const content =
+            response.data.content ||
+            response.data;
+
+          setCategorias(
+            Array.isArray(content)
+              ? content
+              : [],
+          );
+        } catch (requestError) {
+          console.error(
+            'Erro ao carregar categorias:',
+            requestError,
+          );
+
+          setError(
+            'Erro ao carregar categorias.',
+          );
+        }
+      };
+
     void fetchCategorias();
   }, []);
 
@@ -251,16 +252,6 @@ export function ProdutosAdmin() {
       window.clearTimeout(timeoutId);
     };
   }, [fetchProdutos, search]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [
-    search,
-    categoryFilter,
-    activeFilter,
-    sort,
-    limit,
-  ]);
 
   const handleSubmit = async (
     event: FormEvent<HTMLFormElement>,
@@ -743,9 +734,10 @@ export function ProdutosAdmin() {
               type="search"
               placeholder="Buscar produto"
               value={search}
-              onChange={(event) =>
-                setSearch(event.target.value)
-              }
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
               className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
             />
           </div>
@@ -757,11 +749,12 @@ export function ProdutosAdmin() {
 
             <select
               value={categoryFilter}
-              onChange={(event) =>
+              onChange={(event) => {
                 setCategoryFilter(
                   event.target.value,
-                )
-              }
+                );
+                setPage(1);
+              }}
               className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
             >
               <option value="">
@@ -788,14 +781,15 @@ export function ProdutosAdmin() {
 
             <select
               value={activeFilter}
-              onChange={(event) =>
+              onChange={(event) => {
                 setActiveFilter(
                   event.target.value as
                     | 'true'
                     | 'false'
                     | '',
-                )
-              }
+                );
+                setPage(1);
+              }}
               className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
             >
               <option value="">
@@ -819,9 +813,10 @@ export function ProdutosAdmin() {
 
             <select
               value={sort}
-              onChange={(event) =>
-                setSort(event.target.value)
-              }
+              onChange={(event) => {
+                setSort(event.target.value);
+                setPage(1);
+              }}
               className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
             >
               <option value="id,asc">
@@ -885,13 +880,14 @@ export function ProdutosAdmin() {
 
             <select
               value={limit}
-              onChange={(event) =>
+              onChange={(event) => {
                 setLimit(
                   Number(
                     event.target.value,
                   ),
-                )
-              }
+                );
+                setPage(1);
+              }}
               className="h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm font-bold outline-none focus:border-amber-400"
             >
               <option value={5}>5</option>

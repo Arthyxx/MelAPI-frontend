@@ -235,14 +235,6 @@ export function CategoriasAdmin() {
     search,
   ]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [
-    search,
-    activeFilter,
-    limit,
-  ]);
-
   const handleSubmit = async (
     event: FormEvent<HTMLFormElement>,
   ) => {
@@ -646,12 +638,13 @@ export function CategoriasAdmin() {
               value={search}
               onChange={(
                 event,
-              ) =>
+              ) => {
                 setSearch(
                   event.target
                     .value,
-                )
-              }
+                );
+                setPage(1);
+              }}
               className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
             />
           </div>
@@ -667,15 +660,16 @@ export function CategoriasAdmin() {
               }
               onChange={(
                 event,
-              ) =>
+              ) => {
                 setActiveFilter(
                   event.target
                     .value as
                     | 'true'
                     | 'false'
                     | '',
-                )
-              }
+                );
+                setPage(1);
+              }}
               className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
             >
               <option value="">
@@ -740,14 +734,15 @@ export function CategoriasAdmin() {
               value={limit}
               onChange={(
                 event,
-              ) =>
+              ) => {
                 setLimit(
                   Number(
                     event.target
                       .value,
                   ),
-                )
-              }
+                );
+                setPage(1);
+              }}
               className="h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm font-bold outline-none focus:border-amber-400"
             >
               <option value={5}>

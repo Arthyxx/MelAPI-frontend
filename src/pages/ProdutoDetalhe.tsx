@@ -1,4 +1,4 @@
-import {
+﻿import {
   useCallback,
   useEffect,
   useMemo,
@@ -19,7 +19,7 @@ import { ProdutoDetalheLoading } from '../components/produtos/detalhe/ProdutoDet
 import { ProdutoDetalheMain } from '../components/produtos/detalhe/ProdutoDetalheMain';
 import { CartToast } from '../components/ui/CartToast';
 
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 
 import {
   canReviewProduto,
@@ -55,53 +55,80 @@ export function ProdutoDetalhe() {
   const [produto, setProduto] =
     useState<Produto | null>(null);
 
-  const [avaliacoes, setAvaliacoes] = useState<
-    AvaliacaoProduto[]
-  >([]);
+  const [avaliacoes, setAvaliacoes] =
+    useState<AvaliacaoProduto[]>([]);
 
   const [canReview, setCanReview] =
-    useState<CanReviewProduto | null>(null);
+    useState<CanReviewProduto | null>(
+      null,
+    );
 
-  const [loading, setLoading] = useState(true);
-  const [loadingAvaliacoes, setLoadingAvaliacoes] =
+  const [loading, setLoading] =
     useState(true);
-  const [loadingCanReview, setLoadingCanReview] =
-    useState(false);
 
-  const [error, setError] = useState('');
+  const [
+    loadingAvaliacoes,
+    setLoadingAvaliacoes,
+  ] = useState(true);
 
-  const [cartItemsCount, setCartItemsCount] = useState(
+  const [
+    loadingCanReview,
+    setLoadingCanReview,
+  ] = useState(false);
+
+  const [error, setError] =
+    useState('');
+
+  const [
+    cartItemsCount,
+    setCartItemsCount,
+  ] = useState(
     getCartItemsCount(),
   );
 
-  const [toastVisible, setToastVisible] =
-    useState(false);
-  const [toastMessage, setToastMessage] =
-    useState('');
+  const [
+    toastVisible,
+    setToastVisible,
+  ] = useState(false);
 
-  const toastTimeoutRef = useRef<number | null>(
-    null,
-  );
+  const [
+    toastMessage,
+    setToastMessage,
+  ] = useState('');
+
+  const toastTimeoutRef =
+    useRef<number | null>(null);
 
   const clienteId = user?.id;
 
-  const minhaAvaliacao = useMemo(() => {
-    if (clienteId === undefined) {
-      return null;
-    }
+  const minhaAvaliacao =
+    useMemo(() => {
+      if (
+        clienteId === undefined
+      ) {
+        return null;
+      }
 
-    return (
-      avaliacoes.find(
-        (avaliacao) =>
-          Number(avaliacao.clienteId) ===
-          Number(clienteId),
-      ) ?? null
-    );
-  }, [avaliacoes, clienteId]);
+      return (
+        avaliacoes.find(
+          (avaliacao) =>
+            Number(
+              avaliacao.clienteId,
+            ) ===
+            Number(clienteId),
+        ) ?? null
+      );
+    }, [
+      avaliacoes,
+      clienteId,
+    ]);
 
   useEffect(() => {
     return () => {
-      if (toastTimeoutRef.current !== null) {
+      if (
+        toastTimeoutRef.current !==
+        null
+      ) {
         window.clearTimeout(
           toastTimeoutRef.current,
         );
@@ -109,63 +136,72 @@ export function ProdutoDetalhe() {
     };
   }, []);
 
-  const showCartToast = (message: string) => {
+  const showCartToast = (
+    message: string,
+  ) => {
     setToastMessage(message);
     setToastVisible(true);
 
-    if (toastTimeoutRef.current !== null) {
+    if (
+      toastTimeoutRef.current !== null
+    ) {
       window.clearTimeout(
         toastTimeoutRef.current,
       );
     }
 
-    toastTimeoutRef.current = window.setTimeout(
-      () => {
+    toastTimeoutRef.current =
+      window.setTimeout(() => {
         setToastVisible(false);
-      },
-      3000,
-    );
+      }, 3000);
   };
 
-  const reloadCanReview = useCallback(async () => {
-    if (!id || !isAuthenticated) {
-      setCanReview(null);
-      setLoadingCanReview(false);
-      return;
-    }
+  const reloadCanReview =
+    useCallback(async () => {
+      if (
+        !id ||
+        !isAuthenticated
+      ) {
+        setCanReview(null);
+        setLoadingCanReview(false);
 
-    try {
-      setLoadingCanReview(true);
+        return;
+      }
 
-      const canReviewData =
-        await canReviewProduto(id);
+      try {
+        setLoadingCanReview(true);
 
-      setCanReview(canReviewData);
-    } catch (error) {
-      const axiosError =
-        error as AxiosError<ApiErrorResponse>;
+        const canReviewData =
+          await canReviewProduto(id);
 
-      console.error(
-        'Erro ao verificar permissão de avaliação:',
-        {
-          statusCode:
-            axiosError.response?.status,
-          data:
-            axiosError.response?.data,
+        setCanReview(canReviewData);
+      } catch (error) {
+        const axiosError =
+          error as AxiosError<ApiErrorResponse>;
+
+        console.error(
+          'Erro ao verificar permissão de avaliação:',
+          {
+            statusCode:
+              axiosError.response
+                ?.status,
+            data:
+              axiosError.response
+                ?.data,
+            message:
+              axiosError.message,
+          },
+        );
+
+        setCanReview({
+          canReview: false,
           message:
-            axiosError.message,
-        },
-      );
-
-      setCanReview({
-        canReview: false,
-        message:
-          'Não foi possível verificar se você pode avaliar este produto agora.',
-      });
-    } finally {
-      setLoadingCanReview(false);
-    }
-  }, [id, isAuthenticated]);
+            'Não foi possível verificar se você pode avaliar este produto agora.',
+        });
+      } finally {
+        setLoadingCanReview(false);
+      }
+    }, [id, isAuthenticated]);
 
   const reloadAvaliacoes =
     useCallback(async () => {
@@ -177,9 +213,13 @@ export function ProdutoDetalhe() {
         setLoadingAvaliacoes(true);
 
         const avaliacoesData =
-          await findAvaliacoesByProdutoId(id);
+          await findAvaliacoesByProdutoId(
+            id,
+          );
 
-        setAvaliacoes(avaliacoesData);
+        setAvaliacoes(
+          avaliacoesData,
+        );
       } catch (error) {
         const axiosError =
           error as AxiosError<ApiErrorResponse>;
@@ -188,9 +228,11 @@ export function ProdutoDetalhe() {
           'Erro ao recarregar avaliações:',
           {
             statusCode:
-              axiosError.response?.status,
+              axiosError.response
+                ?.status,
             data:
-              axiosError.response?.data,
+              axiosError.response
+                ?.data,
             message:
               axiosError.message,
           },
@@ -203,60 +245,118 @@ export function ProdutoDetalhe() {
     }, [id, reloadCanReview]);
 
   useEffect(() => {
-    const fetchProdutoDetalhe = async () => {
-      if (!id) {
-        navigate('/produtos', {
-          replace: true,
-        });
+    const fetchProdutoDetalhe =
+      async () => {
+        if (!id) {
+          navigate('/produtos', {
+            replace: true,
+          });
 
-        return;
-      }
+          return;
+        }
 
-      try {
-        setError('');
-        setLoading(true);
-        setLoadingAvaliacoes(true);
+        try {
+          setError('');
+          setLoading(true);
+          setLoadingAvaliacoes(true);
 
-        const produtoData =
-          await findProdutoById(id);
+          const produtoData =
+            await findProdutoById(
+              id,
+            );
 
-        setProduto(produtoData);
+          setProduto(produtoData);
 
-        const avaliacoesData =
-          await findAvaliacoesByProdutoId(id);
+          const avaliacoesData =
+            await findAvaliacoesByProdutoId(
+              id,
+            );
 
-        setAvaliacoes(avaliacoesData);
-      } catch (error) {
-        const axiosError =
-          error as AxiosError<ApiErrorResponse>;
+          setAvaliacoes(
+            avaliacoesData,
+          );
+        } catch (error) {
+          const axiosError =
+            error as AxiosError<ApiErrorResponse>;
 
-        console.error(
-          'Erro ao carregar detalhe do produto:',
-          {
-            statusCode:
-              axiosError.response?.status,
-            data:
-              axiosError.response?.data,
-            message:
-              axiosError.message,
-          },
-        );
+          console.error(
+            'Erro ao carregar detalhe do produto:',
+            {
+              statusCode:
+                axiosError.response
+                  ?.status,
+              data:
+                axiosError.response
+                  ?.data,
+              message:
+                axiosError.message,
+            },
+          );
 
-        setError(
-          'Não foi possível carregar os detalhes deste produto.',
-        );
-      } finally {
-        setLoading(false);
-        setLoadingAvaliacoes(false);
-      }
-    };
+          setError(
+            'Não foi possível carregar os detalhes deste produto.',
+          );
+        } finally {
+          setLoading(false);
+          setLoadingAvaliacoes(false);
+        }
+      };
 
     void fetchProdutoDetalhe();
   }, [id, navigate]);
 
   useEffect(() => {
-    void reloadCanReview();
-  }, [reloadCanReview]);
+    const fetchCanReview =
+      async () => {
+        if (
+          !id ||
+          !isAuthenticated
+        ) {
+          setCanReview(null);
+          setLoadingCanReview(false);
+
+          return;
+        }
+
+        try {
+          setLoadingCanReview(true);
+
+          const canReviewData =
+            await canReviewProduto(id);
+
+          setCanReview(
+            canReviewData,
+          );
+        } catch (error) {
+          const axiosError =
+            error as AxiosError<ApiErrorResponse>;
+
+          console.error(
+            'Erro ao verificar permissão de avaliação:',
+            {
+              statusCode:
+                axiosError.response
+                  ?.status,
+              data:
+                axiosError.response
+                  ?.data,
+              message:
+                axiosError.message,
+            },
+          );
+
+          setCanReview({
+            canReview: false,
+            message:
+              'Não foi possível verificar se você pode avaliar este produto agora.',
+          });
+        } finally {
+          setLoadingCanReview(false);
+        }
+      };
+
+    void fetchCanReview();
+  }, [id, isAuthenticated]);
 
   const handleAddToCart = () => {
     if (!produto) {
@@ -265,33 +365,43 @@ export function ProdutoDetalhe() {
 
     if (!isAuthenticated) {
       navigate('/login');
+
       return;
     }
 
     try {
-      const updatedCart = addToCart({
-        id: produto.id,
-        name: produto.name,
-        price: produto.price,
-        stockQuantity:
-          produto.stockQuantity,
-        imageUrl: produto.imageUrl,
-      });
+      const updatedCart =
+        addToCart({
+          id: produto.id,
+          name: produto.name,
+          price: produto.price,
+          stockQuantity:
+            produto.stockQuantity,
+          imageUrl:
+            produto.imageUrl,
+        });
 
-      const totalItems = updatedCart.reduce(
-        (total, item) =>
-          total + item.quantity,
-        0,
+      const totalItems =
+        updatedCart.reduce(
+          (total, item) =>
+            total +
+            item.quantity,
+          0,
+        );
+
+      setCartItemsCount(
+        totalItems,
       );
-
-      setCartItemsCount(totalItems);
 
       showCartToast(
         `${produto.name} foi adicionado ao carrinho.`,
       );
     } catch (error) {
-      if (error instanceof Error) {
+      if (
+        error instanceof Error
+      ) {
         alert(error.message);
+
         return;
       }
 
@@ -302,7 +412,9 @@ export function ProdutoDetalhe() {
   };
 
   if (loading) {
-    return <ProdutoDetalheLoading />;
+    return (
+      <ProdutoDetalheLoading />
+    );
   }
 
   if (error || !produto) {
@@ -317,7 +429,9 @@ export function ProdutoDetalhe() {
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 dark:from-gray-950 dark:via-gray-900 dark:to-amber-950">
       <ProdutoDetalheHeader
         isLogged={isAuthenticated}
-        cartItemsCount={cartItemsCount}
+        cartItemsCount={
+          cartItemsCount
+        }
       />
 
       <CartToast
@@ -331,8 +445,12 @@ export function ProdutoDetalhe() {
       <main className="container mx-auto px-4 py-10">
         <ProdutoDetalheMain
           produto={produto}
-          isLogged={isAuthenticated}
-          onAddToCart={handleAddToCart}
+          isLogged={
+            isAuthenticated
+          }
+          onAddToCart={
+            handleAddToCart
+          }
         />
 
         <ProdutoDetalheInfoCards />
@@ -340,9 +458,15 @@ export function ProdutoDetalhe() {
         <AvaliacoesProduto
           produtoId={produto.id}
           avaliacoes={avaliacoes}
-          loading={loadingAvaliacoes}
-          isLogged={isAuthenticated}
-          minhaAvaliacao={minhaAvaliacao}
+          loading={
+            loadingAvaliacoes
+          }
+          isLogged={
+            isAuthenticated
+          }
+          minhaAvaliacao={
+            minhaAvaliacao
+          }
           canReview={canReview}
           loadingCanReview={
             loadingCanReview

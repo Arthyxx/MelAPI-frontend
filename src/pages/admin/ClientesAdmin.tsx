@@ -213,15 +213,6 @@ export function ClientesAdmin() {
     };
   }, [fetchClientes, search]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [
-    search,
-    roleFilter,
-    activeFilter,
-    limit,
-  ]);
-
   const handleSubmit = async (
     event: FormEvent<HTMLFormElement>,
   ) => {
@@ -680,9 +671,10 @@ export function ClientesAdmin() {
               type="search"
               placeholder="Nome, e-mail, telefone ou cidade"
               value={search}
-              onChange={(event) =>
-                setSearch(event.target.value)
-              }
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
               className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
             />
           </div>
@@ -698,12 +690,13 @@ export function ClientesAdmin() {
             <select
               id="clientes-role-filter"
               value={roleFilter}
-              onChange={(event) =>
+              onChange={(event) => {
                 setRoleFilter(
                   event.target
                     .value as ClienteRole | '',
-                )
-              }
+                );
+                setPage(1);
+              }}
               className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
             >
               <option value="">
@@ -731,14 +724,15 @@ export function ClientesAdmin() {
             <select
               id="clientes-active-filter"
               value={activeFilter}
-              onChange={(event) =>
+              onChange={(event) => {
                 setActiveFilter(
                   event.target.value as
                     | 'true'
                     | 'false'
                     | '',
-                )
-              }
+                );
+                setPage(1);
+              }}
               className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
             >
               <option value="">
@@ -794,13 +788,14 @@ export function ClientesAdmin() {
             <select
               id="clientes-limit"
               value={limit}
-              onChange={(event) =>
+              onChange={(event) => {
                 setLimit(
                   Number(
                     event.target.value,
                   ),
-                )
-              }
+                );
+                setPage(1);
+              }}
               className="h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm font-bold outline-none focus:border-amber-400"
             >
               <option value={5}>5</option>

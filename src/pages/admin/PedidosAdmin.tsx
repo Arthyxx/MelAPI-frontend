@@ -213,14 +213,6 @@ export function PedidosAdmin() {
     };
   }, [fetchPedidos, search]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [
-    search,
-    statusFilter,
-    limit,
-  ]);
-
   const updateStatus = async (
     id: number,
     status: string,
@@ -391,11 +383,12 @@ export function PedidosAdmin() {
               type="search"
               placeholder="Pedido, cliente ou e-mail"
               value={search}
-              onChange={(event) =>
+              onChange={(event) => {
                 setSearch(
                   event.target.value,
-                )
-              }
+                );
+                setPage(1);
+              }}
               className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
             />
           </div>
@@ -411,11 +404,12 @@ export function PedidosAdmin() {
             <select
               id="pedidos-status-filter"
               value={statusFilter}
-              onChange={(event) =>
+              onChange={(event) => {
                 setStatusFilter(
                   event.target.value,
-                )
-              }
+                );
+                setPage(1);
+              }}
               className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
             >
               <option value="">
@@ -488,13 +482,14 @@ export function PedidosAdmin() {
             <select
               id="pedidos-limit"
               value={limit}
-              onChange={(event) =>
+              onChange={(event) => {
                 setLimit(
                   Number(
                     event.target.value,
                   ),
-                )
-              }
+                );
+                setPage(1);
+              }}
               className="h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm font-bold outline-none focus:border-amber-400"
             >
               <option value={5}>

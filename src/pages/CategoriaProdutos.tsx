@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import {
   Link,
   useNavigate,
@@ -11,7 +11,7 @@ import { StoreSidebarMenu } from '../components/layout/StoreSidebarMenu';
 import { ProdutosGrid } from '../components/produtos/ProdutosGrid';
 import { CartToast } from '../components/ui/CartToast';
 
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 
 import {
   findAllCategorias,

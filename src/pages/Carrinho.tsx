@@ -1,9 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import {
+  useMemo,
+  useState,
+} from 'react';
 import type { AxiosError } from 'axios';
-import { Link, useNavigate } from 'react-router-dom';
+import {
+  Link,
+  useNavigate,
+} from 'react-router-dom';
 
 import { ConfirmModal } from '../components/ui/ConfirmModal';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 import { api } from '../services/api';
 
 import {
@@ -21,25 +27,33 @@ interface ApiErrorResponse {
 }
 
 export function Carrinho() {
-  const [items, setItems] = useState<CartItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [clearCartModalOpen, setClearCartModalOpen] =
+  const [items, setItems] =
+    useState<CartItem[]>(getCart);
+
+  const [loading, setLoading] =
     useState(false);
 
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [
+    clearCartModalOpen,
+    setClearCartModalOpen,
+  ] = useState(false);
+
+  const [error, setError] =
+    useState('');
+
+  const [success, setSuccess] =
+    useState('');
 
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
 
-  useEffect(() => {
-    setItems(getCart());
-  }, []);
+  const { isAuthenticated } =
+    useAuth();
 
   const total = useMemo(() => {
     return items.reduce(
       (sum, item) =>
-        sum + item.price * item.quantity,
+        sum +
+        item.price * item.quantity,
       0,
     );
   }, [items]);
@@ -55,140 +69,168 @@ export function Carrinho() {
   const subtotal = total;
   const discount = 0;
   const shippingLabel = 'A combinar';
-  const finalTotal = subtotal - discount;
+  const finalTotal =
+    subtotal - discount;
 
   const updateQuantity = (
     productId: number,
     quantity: number,
   ) => {
-    const updatedItems = items.map((item) => {
-      if (item.id !== productId) {
-        return item;
-      }
+    const updatedItems =
+      items.map((item) => {
+        if (item.id !== productId) {
+          return item;
+        }
 
-      const safeQuantity = Math.max(
-        1,
-        Math.min(
-          quantity,
-          item.stockQuantity,
-        ),
-      );
+        const safeQuantity =
+          Math.max(
+            1,
+            Math.min(
+              quantity,
+              item.stockQuantity,
+            ),
+          );
 
-      return {
-        ...item,
-        quantity: safeQuantity,
-      };
-    });
+        return {
+          ...item,
+          quantity: safeQuantity,
+        };
+      });
 
     setItems(updatedItems);
     saveCart(updatedItems);
   };
 
-  const handleRemove = (productId: number) => {
+  const handleRemove = (
+    productId: number,
+  ) => {
     const updatedItems =
       removeFromCart(productId);
 
     setItems(updatedItems);
   };
 
-  const handleOpenClearCartModal = () => {
-    if (items.length === 0) {
-      return;
-    }
+  const handleOpenClearCartModal =
+    () => {
+      if (items.length === 0) {
+        return;
+      }
 
-    setError('');
-    setSuccess('');
-    setClearCartModalOpen(true);
-  };
-
-  const handleConfirmClearCart = () => {
-    clearCart();
-    setItems([]);
-    setClearCartModalOpen(false);
-    setSuccess(
-      'Carrinho limpo com sucesso.',
-    );
-  };
-
-  const handleFinishOrder = async () => {
-    try {
       setError('');
       setSuccess('');
+      setClearCartModalOpen(true);
+    };
 
-      if (!isAuthenticated) {
-        navigate('/login', {
-          replace: true,
-        });
-
-        return;
-      }
-
-      if (items.length === 0) {
-        setError(
-          'O carrinho está vazio.',
-        );
-
-        return;
-      }
-
-      setLoading(true);
-
-      const payload = {
-        items: items.map((item) => ({
-          produtoId: item.id,
-          quantity: item.quantity,
-        })),
-      };
-
-      await api.post('/pedidos', payload);
-
+  const handleConfirmClearCart =
+    () => {
       clearCart();
       setItems([]);
+      setClearCartModalOpen(false);
 
       setSuccess(
-        'Pedido criado com sucesso!',
+        'Carrinho limpo com sucesso.',
       );
+    };
 
-      window.setTimeout(() => {
-        navigate('/meus-pedidos', {
-          replace: true,
-        });
-      }, 1200);
-    } catch (error) {
-      const axiosError =
-        error as AxiosError<ApiErrorResponse>;
+  const handleFinishOrder =
+    async () => {
+      try {
+        setError('');
+        setSuccess('');
 
-      const apiMessage =
-        axiosError.response?.data?.message;
+        if (!isAuthenticated) {
+          navigate('/login', {
+            replace: true,
+          });
 
-      console.error(
-        'Erro ao finalizar pedido:',
-        {
-          statusCode:
-            axiosError.response?.status,
-          data:
-            axiosError.response?.data,
-          message:
-            axiosError.message,
-        },
-      );
+          return;
+        }
 
-      if (Array.isArray(apiMessage)) {
-        setError(apiMessage.join(' '));
-        return;
+        if (items.length === 0) {
+          setError(
+            'O carrinho está vazio.',
+          );
+
+          return;
+        }
+
+        setLoading(true);
+
+        const payload = {
+          items: items.map(
+            (item) => ({
+              produtoId: item.id,
+              quantity:
+                item.quantity,
+            }),
+          ),
+        };
+
+        await api.post(
+          '/pedidos',
+          payload,
+        );
+
+        clearCart();
+        setItems([]);
+
+        setSuccess(
+          'Pedido criado com sucesso!',
+        );
+
+        window.setTimeout(() => {
+          navigate(
+            '/meus-pedidos',
+            {
+              replace: true,
+            },
+          );
+        }, 1200);
+      } catch (error) {
+        const axiosError =
+          error as AxiosError<ApiErrorResponse>;
+
+        const apiMessage =
+          axiosError.response?.data
+            ?.message;
+
+        console.error(
+          'Erro ao finalizar pedido:',
+          {
+            statusCode:
+              axiosError.response
+                ?.status,
+            data:
+              axiosError.response
+                ?.data,
+            message:
+              axiosError.message,
+          },
+        );
+
+        if (
+          Array.isArray(apiMessage)
+        ) {
+          setError(
+            apiMessage.join(' '),
+          );
+
+          return;
+        }
+
+        setError(
+          apiMessage ||
+            axiosError.response
+              ?.data?.error ||
+            'Erro ao finalizar pedido. Verifique o estoque dos produtos e tente novamente.',
+        );
+      } finally {
+        setLoading(false);
       }
+    };
 
-      setError(
-        apiMessage ||
-          axiosError.response?.data?.error ||
-          'Erro ao finalizar pedido. Verifique o estoque dos produtos e tente novamente.',
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const isEmpty = items.length === 0;
+  const isEmpty =
+    items.length === 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 dark:from-gray-950 dark:via-gray-900 dark:to-amber-950">
@@ -211,8 +253,9 @@ export function Carrinho() {
                 </h1>
 
                 <p className="text-sm text-amber-100">
-                  Revise seus produtos antes de
-                  finalizar o pedido
+                  Revise seus produtos
+                  antes de finalizar o
+                  pedido
                 </p>
               </div>
             </Link>
@@ -262,8 +305,9 @@ export function Carrinho() {
             </h2>
 
             <p className="mx-auto mt-3 max-w-md text-gray-600 dark:text-gray-400">
-              Adicione produtos de mel à sua cesta
-              antes de finalizar o pedido.
+              Adicione produtos de mel à
+              sua cesta antes de
+              finalizar o pedido.
             </p>
 
             <Link
@@ -312,7 +356,9 @@ export function Carrinho() {
                     <div className="relative flex min-h-[180px] items-center justify-center bg-gradient-to-br from-amber-100 via-yellow-100 to-orange-100 dark:from-amber-950 dark:via-gray-900 dark:to-gray-950">
                       {item.imageUrl ? (
                         <img
-                          src={item.imageUrl}
+                          src={
+                            item.imageUrl
+                          }
                           alt={item.name}
                           className="h-full w-full object-cover"
                         />
@@ -331,8 +377,11 @@ export function Carrinho() {
                           </h3>
 
                           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                            Estoque disponível:{' '}
-                            {item.stockQuantity}
+                            Estoque
+                            disponível:{' '}
+                            {
+                              item.stockQuantity
+                            }
                           </p>
                         </div>
 
@@ -368,11 +417,13 @@ export function Carrinho() {
                             onClick={() =>
                               updateQuantity(
                                 item.id,
-                                item.quantity - 1,
+                                item.quantity -
+                                  1,
                               )
                             }
                             disabled={
-                              item.quantity <= 1
+                              item.quantity <=
+                              1
                             }
                             className="flex h-11 w-11 items-center justify-center rounded-2xl border border-amber-200 bg-white text-xl font-black text-amber-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-amber-800 dark:bg-gray-950 dark:text-amber-300"
                           >
@@ -388,7 +439,8 @@ export function Carrinho() {
                             onClick={() =>
                               updateQuantity(
                                 item.id,
-                                item.quantity + 1,
+                                item.quantity +
+                                  1,
                               )
                             }
                             disabled={
@@ -432,8 +484,8 @@ export function Carrinho() {
                   </h2>
 
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Confira os valores antes de
-                    finalizar
+                    Confira os valores
+                    antes de finalizar
                   </p>
                 </div>
               </div>
@@ -498,15 +550,18 @@ export function Carrinho() {
                   </p>
 
                   <p className="mt-2 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-                    Confira os valores antes de
-                    finalizar o pedido.
+                    Confira os valores
+                    antes de finalizar
+                    o pedido.
                   </p>
                 </div>
               </div>
 
               <button
                 type="button"
-                onClick={handleFinishOrder}
+                onClick={
+                  handleFinishOrder
+                }
                 disabled={
                   loading || isEmpty
                 }
@@ -523,6 +578,7 @@ export function Carrinho() {
                   ) : (
                     <>
                       Finalizar pedido
+
                       <span className="transition group-hover:translate-x-1">
                         →
                       </span>
@@ -532,8 +588,10 @@ export function Carrinho() {
               </button>
 
               <p className="mt-4 text-center text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-                Após finalizar, o pedido aparecerá
-                em “Meus pedidos” para acompanhamento.
+                Após finalizar, o pedido
+                aparecerá em “Meus
+                pedidos” para
+                acompanhamento.
               </p>
             </aside>
           </div>

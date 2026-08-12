@@ -1,5 +1,13 @@
-import { useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import {
+  useState,
+  type FormEvent,
+} from 'react';
+import { isAxiosError } from 'axios';
+import {
+  Link,
+  useNavigate,
+} from 'react-router-dom';
+
 import { api } from '../services/api';
 
 interface CadastroFormData {
@@ -16,40 +24,96 @@ interface CadastroFormData {
   zipCode: string;
 }
 
+interface ApiErrorResponse {
+  message?: string | string[];
+  error?: string;
+}
+
+function getApiErrorMessage(
+  error: unknown,
+) {
+  const fallback =
+    'Erro ao realizar cadastro. Verifique os dados e tente novamente.';
+
+  if (
+    !isAxiosError<ApiErrorResponse>(
+      error,
+    )
+  ) {
+    return fallback;
+  }
+
+  const message =
+    error.response?.data?.message;
+
+  if (Array.isArray(message)) {
+    return message.join(' ');
+  }
+
+  if (typeof message === 'string') {
+    return message;
+  }
+
+  const apiError =
+    error.response?.data?.error;
+
+  if (typeof apiError === 'string') {
+    return apiError;
+  }
+
+  return fallback;
+}
+
 export function Cadastro() {
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState<CadastroFormData>({
-    name: '',
-    email: '',
-    password: '',
-    phone: '',
-    street: '',
-    addressNumber: '',
-    complement: '',
-    neighborhood: '',
-    city: '',
-    state: '',
-    zipCode: '',
-  });
+  const [formData, setFormData] =
+    useState<CadastroFormData>({
+      name: '',
+      email: '',
+      password: '',
+      phone: '',
+      street: '',
+      addressNumber: '',
+      complement: '',
+      neighborhood: '',
+      city: '',
+      state: '',
+      zipCode: '',
+    });
 
-  const [erro, setErro] = useState('');
-  const [sucesso, setSucesso] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [erro, setErro] =
+    useState('');
 
-  const handleChange = (field: keyof CadastroFormData, value: string) => {
+  const [sucesso, setSucesso] =
+    useState('');
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const handleChange = (
+    field: keyof CadastroFormData,
+    value: string,
+  ) => {
     let formattedValue = value;
 
     if (field === 'phone') {
-      formattedValue = value.replace(/\D/g, '').slice(0, 11);
+      formattedValue = value
+        .replace(/\D/g, '')
+        .slice(0, 11);
     }
 
     if (field === 'zipCode') {
-      formattedValue = value.replace(/\D/g, '').slice(0, 8);
+      formattedValue = value
+        .replace(/\D/g, '')
+        .slice(0, 8);
     }
 
     if (field === 'state') {
-      formattedValue = value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2);
+      formattedValue = value
+        .toUpperCase()
+        .replace(/[^A-Z]/g, '')
+        .slice(0, 2);
     }
 
     setFormData((prev) => ({
@@ -58,7 +122,10 @@ export function Cadastro() {
     }));
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (
+    event:
+      FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault();
 
     try {
@@ -66,24 +133,43 @@ export function Cadastro() {
       setSucesso('');
       setLoading(true);
 
-      await api.post('/clientes', formData);
+      await api.post(
+        '/clientes',
+        formData,
+      );
 
-      setSucesso('Cadastro realizado com sucesso! Redirecionando para o login...');
+      setSucesso(
+        'Cadastro realizado com sucesso! Redirecionando para o login...',
+      );
 
       setTimeout(() => {
         navigate('/login');
       }, 1400);
-    } catch (err: any) {
-      console.error('Erro ao realizar cadastro:', {
-        statusCode: err.response?.status,
-        data: err.response?.data,
-        message: err.message,
-      });
+    } catch (err: unknown) {
+      if (
+        isAxiosError<ApiErrorResponse>(
+          err,
+        )
+      ) {
+        console.error(
+          'Erro ao realizar cadastro:',
+          {
+            statusCode:
+              err.response?.status,
+            data:
+              err.response?.data,
+            message: err.message,
+          },
+        );
+      } else {
+        console.error(
+          'Erro ao realizar cadastro:',
+          err,
+        );
+      }
 
       setErro(
-        err.response?.data?.message ||
-          err.response?.data?.error ||
-          'Erro ao realizar cadastro. Verifique os dados e tente novamente.'
+        getApiErrorMessage(err),
       );
     } finally {
       setLoading(false);
@@ -99,7 +185,9 @@ export function Cadastro() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 px-4 py-10 dark:from-gray-950 dark:via-gray-900 dark:to-amber-950">
       <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-amber-300/30 blur-3xl animate-pulse-gentle" />
+
       <div className="absolute -right-24 bottom-10 h-80 w-80 rounded-full bg-yellow-400/30 blur-3xl animate-pulse-gentle" />
+
       <div className="absolute left-1/2 top-1/3 h-48 w-48 rounded-full bg-orange-300/20 blur-3xl animate-spin-slow" />
 
       <main className="relative z-10 mx-auto grid min-h-[calc(100vh-5rem)] max-w-6xl items-center gap-8 lg:grid-cols-[0.85fr_1.15fr]">
@@ -110,31 +198,50 @@ export function Cadastro() {
             </div>
 
             <h1 className="text-5xl font-black leading-tight text-amber-950 dark:text-amber-300">
-              Crie sua conta e compre produtos naturais com facilidade.
+              Crie sua conta e compre
+              produtos naturais com
+              facilidade.
             </h1>
 
             <p className="mt-5 text-lg text-gray-600 dark:text-gray-300">
-              Cadastre seus dados para acompanhar pedidos, finalizar compras e receber atualizações sobre seus produtos.
+              Cadastre seus dados para
+              acompanhar pedidos,
+              finalizar compras e
+              receber atualizações
+              sobre seus produtos.
             </p>
 
             <div className="mt-8 grid gap-4">
               <div className="rounded-3xl border border-amber-100 bg-white/80 p-5 shadow-md dark:border-amber-900 dark:bg-gray-950/70">
-                <div className="text-3xl">📦</div>
+                <div className="text-3xl">
+                  📦
+                </div>
+
                 <h3 className="mt-3 font-extrabold text-amber-900 dark:text-amber-300">
                   Acompanhe seus pedidos
                 </h3>
+
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Veja status, detalhes e histórico de compras.
+                  Veja status, detalhes
+                  e histórico de
+                  compras.
                 </p>
               </div>
 
               <div className="rounded-3xl border border-amber-100 bg-white/80 p-5 shadow-md dark:border-amber-900 dark:bg-gray-950/70">
-                <div className="text-3xl">🐝</div>
+                <div className="text-3xl">
+                  🐝
+                </div>
+
                 <h3 className="mt-3 font-extrabold text-amber-900 dark:text-amber-300">
                   Produtos artesanais
                 </h3>
+
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Mel, própolis e produtos naturais em uma experiência simples.
+                  Mel, própolis e
+                  produtos naturais em
+                  uma experiência
+                  simples.
                 </p>
               </div>
             </div>
@@ -153,6 +260,7 @@ export function Cadastro() {
                   <p className="text-sm font-bold uppercase tracking-wider text-amber-100">
                     Criar conta
                   </p>
+
                   <h2 className="text-3xl font-black">
                     Cadastro de cliente
                   </h2>
@@ -160,7 +268,14 @@ export function Cadastro() {
               </div>
 
               <p className="mt-4 max-w-2xl text-sm text-amber-50">
-                Preencha seus dados para comprar e acompanhar seus pedidos. Sim, o formulário é grande, porque entrega precisa de endereço, essa pequena exigência da realidade física.
+                Preencha seus dados para
+                comprar e acompanhar
+                seus pedidos. Sim, o
+                formulário é grande,
+                porque entrega precisa
+                de endereço, essa
+                pequena exigência da
+                realidade física.
               </p>
             </div>
 
@@ -177,7 +292,10 @@ export function Cadastro() {
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-8">
+              <form
+                onSubmit={handleSubmit}
+                className="space-y-8"
+              >
                 <section className="animate-fade-in-up delay-100">
                   <div className="mb-4 flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-100 text-xl">
@@ -188,58 +306,129 @@ export function Cadastro() {
                       <h3 className="text-lg font-black text-amber-900 dark:text-amber-300">
                         Dados pessoais
                       </h3>
+
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Informações básicas da sua conta.
+                        Informações
+                        básicas da sua
+                        conta.
                       </p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div className="md:col-span-2">
-                      <label className={labelClass}>Nome completo</label>
+                      <label
+                        className={
+                          labelClass
+                        }
+                      >
+                        Nome completo
+                      </label>
+
                       <input
                         type="text"
                         placeholder="Ex: Carlos Silva"
-                        value={formData.name}
-                        onChange={(e) => handleChange('name', e.target.value)}
-                        className={inputClass}
+                        value={
+                          formData.name
+                        }
+                        onChange={(e) =>
+                          handleChange(
+                            'name',
+                            e.target
+                              .value,
+                          )
+                        }
+                        className={
+                          inputClass
+                        }
                         required
                       />
                     </div>
 
                     <div>
-                      <label className={labelClass}>E-mail</label>
+                      <label
+                        className={
+                          labelClass
+                        }
+                      >
+                        E-mail
+                      </label>
+
                       <input
                         type="email"
                         placeholder="seuemail@email.com"
-                        value={formData.email}
-                        onChange={(e) => handleChange('email', e.target.value)}
-                        className={inputClass}
+                        value={
+                          formData.email
+                        }
+                        onChange={(e) =>
+                          handleChange(
+                            'email',
+                            e.target
+                              .value,
+                          )
+                        }
+                        className={
+                          inputClass
+                        }
                         required
                       />
                     </div>
 
                     <div>
-                      <label className={labelClass}>Senha</label>
+                      <label
+                        className={
+                          labelClass
+                        }
+                      >
+                        Senha
+                      </label>
+
                       <input
                         type="password"
                         placeholder="Mínimo 6 caracteres"
-                        value={formData.password}
-                        onChange={(e) => handleChange('password', e.target.value)}
-                        className={inputClass}
+                        value={
+                          formData.password
+                        }
+                        onChange={(e) =>
+                          handleChange(
+                            'password',
+                            e.target
+                              .value,
+                          )
+                        }
+                        className={
+                          inputClass
+                        }
                         minLength={6}
                         required
                       />
                     </div>
 
                     <div className="md:col-span-2">
-                      <label className={labelClass}>Telefone</label>
+                      <label
+                        className={
+                          labelClass
+                        }
+                      >
+                        Telefone
+                      </label>
+
                       <input
                         type="tel"
                         placeholder="85999999999"
-                        value={formData.phone}
-                        onChange={(e) => handleChange('phone', e.target.value)}
-                        className={inputClass}
+                        value={
+                          formData.phone
+                        }
+                        onChange={(e) =>
+                          handleChange(
+                            'phone',
+                            e.target
+                              .value,
+                          )
+                        }
+                        className={
+                          inputClass
+                        }
                         required
                       />
                     </div>
@@ -254,95 +443,219 @@ export function Cadastro() {
 
                     <div>
                       <h3 className="text-lg font-black text-amber-900 dark:text-amber-300">
-                        Endereço de entrega
+                        Endereço de
+                        entrega
                       </h3>
+
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Usado para facilitar a entrega dos produtos.
+                        Usado para
+                        facilitar a
+                        entrega dos
+                        produtos.
                       </p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                      <label className={labelClass}>CEP</label>
+                      <label
+                        className={
+                          labelClass
+                        }
+                      >
+                        CEP
+                      </label>
+
                       <input
                         type="text"
                         placeholder="60000000"
-                        value={formData.zipCode}
-                        onChange={(e) => handleChange('zipCode', e.target.value)}
-                        className={inputClass}
+                        value={
+                          formData.zipCode
+                        }
+                        onChange={(e) =>
+                          handleChange(
+                            'zipCode',
+                            e.target
+                              .value,
+                          )
+                        }
+                        className={
+                          inputClass
+                        }
                         required
                       />
                     </div>
 
                     <div>
-                      <label className={labelClass}>Estado</label>
+                      <label
+                        className={
+                          labelClass
+                        }
+                      >
+                        Estado
+                      </label>
+
                       <input
                         type="text"
                         placeholder="CE"
-                        value={formData.state}
-                        onChange={(e) => handleChange('state', e.target.value)}
-                        className={inputClass}
+                        value={
+                          formData.state
+                        }
+                        onChange={(e) =>
+                          handleChange(
+                            'state',
+                            e.target
+                              .value,
+                          )
+                        }
+                        className={
+                          inputClass
+                        }
                         required
                       />
                     </div>
 
                     <div>
-                      <label className={labelClass}>Cidade</label>
+                      <label
+                        className={
+                          labelClass
+                        }
+                      >
+                        Cidade
+                      </label>
+
                       <input
                         type="text"
                         placeholder="Fortaleza"
-                        value={formData.city}
-                        onChange={(e) => handleChange('city', e.target.value)}
-                        className={inputClass}
+                        value={
+                          formData.city
+                        }
+                        onChange={(e) =>
+                          handleChange(
+                            'city',
+                            e.target
+                              .value,
+                          )
+                        }
+                        className={
+                          inputClass
+                        }
                         required
                       />
                     </div>
 
                     <div>
-                      <label className={labelClass}>Bairro</label>
+                      <label
+                        className={
+                          labelClass
+                        }
+                      >
+                        Bairro
+                      </label>
+
                       <input
                         type="text"
                         placeholder="Centro"
-                        value={formData.neighborhood}
-                        onChange={(e) => handleChange('neighborhood', e.target.value)}
-                        className={inputClass}
+                        value={
+                          formData.neighborhood
+                        }
+                        onChange={(e) =>
+                          handleChange(
+                            'neighborhood',
+                            e.target
+                              .value,
+                          )
+                        }
+                        className={
+                          inputClass
+                        }
                         required
                       />
                     </div>
 
                     <div className="md:col-span-2">
-                      <label className={labelClass}>Rua</label>
+                      <label
+                        className={
+                          labelClass
+                        }
+                      >
+                        Rua
+                      </label>
+
                       <input
                         type="text"
                         placeholder="Rua das Flores"
-                        value={formData.street}
-                        onChange={(e) => handleChange('street', e.target.value)}
-                        className={inputClass}
+                        value={
+                          formData.street
+                        }
+                        onChange={(e) =>
+                          handleChange(
+                            'street',
+                            e.target
+                              .value,
+                          )
+                        }
+                        className={
+                          inputClass
+                        }
                         required
                       />
                     </div>
 
                     <div>
-                      <label className={labelClass}>Número</label>
+                      <label
+                        className={
+                          labelClass
+                        }
+                      >
+                        Número
+                      </label>
+
                       <input
                         type="text"
                         placeholder="123"
-                        value={formData.addressNumber}
-                        onChange={(e) => handleChange('addressNumber', e.target.value)}
-                        className={inputClass}
+                        value={
+                          formData.addressNumber
+                        }
+                        onChange={(e) =>
+                          handleChange(
+                            'addressNumber',
+                            e.target
+                              .value,
+                          )
+                        }
+                        className={
+                          inputClass
+                        }
                         required
                       />
                     </div>
 
                     <div>
-                      <label className={labelClass}>Complemento</label>
+                      <label
+                        className={
+                          labelClass
+                        }
+                      >
+                        Complemento
+                      </label>
+
                       <input
                         type="text"
                         placeholder="Apartamento, bloco, referência..."
-                        value={formData.complement}
-                        onChange={(e) => handleChange('complement', e.target.value)}
-                        className={inputClass}
+                        value={
+                          formData.complement
+                        }
+                        onChange={(e) =>
+                          handleChange(
+                            'complement',
+                            e.target
+                              .value,
+                          )
+                        }
+                        className={
+                          inputClass
+                        }
                       />
                     </div>
                   </div>
@@ -364,8 +677,12 @@ export function Cadastro() {
                         </>
                       ) : (
                         <>
-                          Criar minha conta
-                          <span className="transition group-hover:translate-x-1">→</span>
+                          Criar minha
+                          conta
+
+                          <span className="transition group-hover:translate-x-1">
+                            →
+                          </span>
                         </>
                       )}
                     </span>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { StoreFooter } from '../components/layout/StoreFooter';
@@ -10,7 +10,7 @@ import { ProdutosHero } from '../components/produtos/ProdutosHero';
 import { ProdutosInstitutional } from '../components/produtos/ProdutosInstitutional';
 import { CartToast } from '../components/ui/CartToast';
 
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 import { findAllCategorias } from '../services/categoriaService';
 import { findAllProdutos } from '../services/produtoService';
 

@@ -1,10 +1,10 @@
-import type { ReactNode } from 'react';
+﻿import type { ReactNode } from 'react';
 import {
   Link,
   useLocation,
   useNavigate,
 } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -84,7 +84,7 @@ export function AdminLayout({
               to="/produtos"
               className="flex items-center gap-1 text-amber-600 transition hover:text-amber-800"
             >
-              <span>🏠</span>
+              <span>🛍️</span>
               Ir para a loja
             </Link>
 
