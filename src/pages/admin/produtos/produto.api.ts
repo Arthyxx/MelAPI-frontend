@@ -21,9 +21,17 @@ interface ProdutoPayload {
   description?: string;
   price: number;
   stockQuantity: number;
+
+  weightKg?: number;
+  heightCm?: number;
+  widthCm?: number;
+  lengthCm?: number;
+
   categoryId: number;
+
   imageUrl?: string;
   imagePublicId?: string;
+
   active: boolean;
 }
 
@@ -43,9 +51,12 @@ export async function fetchProdutosApi(
 
 export async function fetchCategoriasApi() {
   const response =
-    await api.get<Categoria[] | {
-      content: Categoria[];
-    }>('/categorias');
+    await api.get<
+      | Categoria[]
+      | {
+          content: Categoria[];
+        }
+    >('/categorias');
 
   const data = response.data;
 
@@ -111,6 +122,19 @@ export async function deleteProdutoApi(
   );
 }
 
+function optionalNumber(
+  value: string,
+): number | undefined {
+  const normalized =
+    value.trim();
+
+  if (!normalized) {
+    return undefined;
+  }
+
+  return Number(normalized);
+}
+
 export function createProdutoPayload(
   formData: ProdutoFormData,
   imageData: {
@@ -133,6 +157,26 @@ export function createProdutoPayload(
     stockQuantity: Number(
       formData.stockQuantity,
     ),
+
+    weightKg:
+      optionalNumber(
+        formData.weightKg,
+      ),
+
+    heightCm:
+      optionalNumber(
+        formData.heightCm,
+      ),
+
+    widthCm:
+      optionalNumber(
+        formData.widthCm,
+      ),
+
+    lengthCm:
+      optionalNumber(
+        formData.lengthCm,
+      ),
 
     categoryId: Number(
       formData.categoryId,

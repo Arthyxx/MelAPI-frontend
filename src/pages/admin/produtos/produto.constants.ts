@@ -8,9 +8,17 @@ export const initialFormData: ProdutoFormData = {
   description: '',
   price: '',
   stockQuantity: '',
+
+  weightKg: '',
+  heightCm: '',
+  widthCm: '',
+  lengthCm: '',
+
   categoryId: '',
+
   imageUrl: '',
   imagePublicId: '',
+
   active: true,
 };
 

@@ -3,6 +3,10 @@ import type {
   FormEvent,
 } from 'react';
 
+import {
+  ProdutoShippingFields,
+} from './ProdutoShippingFields';
+
 import type {
   Categoria,
   ProdutoFormData,
@@ -270,6 +274,13 @@ export function ProdutoForm({
             </div>
           </div>
         )}
+
+        <ProdutoShippingFields
+          formData={formData}
+          onFieldChange={
+            onFieldChange
+          }
+        />
 
         <div className="lg:col-span-4">
           <label

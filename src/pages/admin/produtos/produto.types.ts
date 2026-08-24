@@ -3,10 +3,19 @@ export interface Produto {
   name: string;
   price: number;
   stockQuantity: number;
+
   description?: string | null;
+
   imageUrl?: string | null;
   imagePublicId?: string | null;
+
+  weightKg?: number | null;
+  heightCm?: number | null;
+  widthCm?: number | null;
+  lengthCm?: number | null;
+
   active: boolean;
+
   category: {
     id: number;
     name: string;
@@ -47,9 +56,17 @@ export interface ProdutoFormData {
   description: string;
   price: string;
   stockQuantity: string;
+
+  weightKg: string;
+  heightCm: string;
+  widthCm: string;
+  lengthCm: string;
+
   categoryId: string;
+
   imageUrl: string;
   imagePublicId: string;
+
   active: boolean;
 }
 

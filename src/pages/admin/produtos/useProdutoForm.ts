@@ -263,6 +263,38 @@ export function useProdutoForm({
         produto.stockQuantity,
       ),
 
+      weightKg:
+        produto.weightKg !== null &&
+        produto.weightKg !== undefined
+          ? String(
+              produto.weightKg,
+            )
+          : '',
+
+      heightCm:
+        produto.heightCm !== null &&
+        produto.heightCm !== undefined
+          ? String(
+              produto.heightCm,
+            )
+          : '',
+
+      widthCm:
+        produto.widthCm !== null &&
+        produto.widthCm !== undefined
+          ? String(
+              produto.widthCm,
+            )
+          : '',
+
+      lengthCm:
+        produto.lengthCm !== null &&
+        produto.lengthCm !== undefined
+          ? String(
+              produto.lengthCm,
+            )
+          : '',
+
       categoryId: String(
         produto.category?.id ||
           '',
