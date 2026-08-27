@@ -39,12 +39,6 @@ export function useCarrinho() {
 
   const discount = 0;
 
-  const shippingLabel =
-    'A combinar';
-
-  const finalTotal =
-    subtotal - discount;
-
   const isEmpty =
     items.length === 0;
 
@@ -114,8 +108,6 @@ export function useCarrinho() {
     totalItems,
     subtotal,
     discount,
-    shippingLabel,
-    finalTotal,
     isEmpty,
 
     clearCartModalOpen,

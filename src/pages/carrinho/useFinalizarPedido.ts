@@ -25,11 +25,17 @@ interface ApiErrorResponse {
 
 interface UseFinalizarPedidoOptions {
   items: CartItem[];
+
+  shippingServiceId?:
+    | string
+    | null;
+
   onOrderCreated: () => void;
 }
 
 export function useFinalizarPedido({
   items,
+  shippingServiceId = null,
   onOrderCreated,
 }: UseFinalizarPedidoOptions) {
   const navigate = useNavigate();
@@ -73,16 +79,27 @@ export function useFinalizarPedido({
           return;
         }
 
+        if (!shippingServiceId) {
+          setError(
+            'Calcule o frete e selecione uma opção de entrega antes de finalizar o pedido.',
+          );
+
+          return;
+        }
+
         setLoading(true);
 
         const payload = {
           items: items.map(
             (item) => ({
               produtoId: item.id,
+
               quantity:
                 item.quantity,
             }),
           ),
+
+          shippingServiceId,
         };
 
         await api.post(
@@ -114,9 +131,11 @@ export function useFinalizarPedido({
             statusCode:
               axiosError.response
                 ?.status,
+
             data:
               axiosError.response
                 ?.data,
+
             message:
               axiosError.message,
           },

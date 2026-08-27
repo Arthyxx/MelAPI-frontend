@@ -3,7 +3,13 @@
 import {
   ConfirmModal,
 } from '../components/ui/ConfirmModal';
+import {
+  formatCurrency,
+} from '../utils/formatCurrency';
 
+import {
+  CarrinhoFrete,
+} from './carrinho/CarrinhoFrete';
 import {
   CarrinhoHeader,
 } from './carrinho/CarrinhoHeader';
@@ -19,16 +25,66 @@ import {
 import {
   useFinalizarPedido,
 } from './carrinho/useFinalizarPedido';
+import {
+  useFrete,
+} from './carrinho/useFrete';
 
 export function Carrinho() {
   const carrinho = useCarrinho();
 
+  const frete = useFrete({
+    items: carrinho.items,
+  });
+
   const pedido =
     useFinalizarPedido({
       items: carrinho.items,
+
+      shippingServiceId:
+        frete.selectedOption
+          ?.serviceId,
+
       onOrderCreated:
         carrinho.clearItemsAfterOrder,
     });
+
+  const shippingPrice =
+    frete.selectedOption
+      ?.price ?? 0;
+
+  const shippingLabel =
+    frete.selectedOption
+      ? formatCurrency(
+          shippingPrice,
+        )
+      : 'Não calculado';
+
+  const finalTotal =
+    carrinho.subtotal -
+    carrinho.discount +
+    shippingPrice;
+
+  const handleUpdateQuantity = (
+    productId: number,
+    quantity: number,
+  ) => {
+    carrinho.updateQuantity(
+      productId,
+      quantity,
+    );
+
+    frete.invalidateFrete();
+  };
+
+  const handleRemoveItem = (
+    productId: number,
+  ) => {
+    carrinho.removeItem(
+      productId,
+    );
+
+    frete.invalidateFrete();
+  };
 
   const handleOpenClearCartModal =
     () => {
@@ -39,6 +95,7 @@ export function Carrinho() {
   const handleConfirmClearCart =
     () => {
       carrinho.clearAllItems();
+      frete.invalidateFrete();
 
       pedido.setSuccessMessage(
         'Carrinho limpo com sucesso.',
@@ -100,42 +157,71 @@ export function Carrinho() {
                 carrinho.totalItems
               }
               onUpdateQuantity={
-                carrinho.updateQuantity
+                handleUpdateQuantity
               }
               onRemoveItem={
-                carrinho.removeItem
+                handleRemoveItem
               }
               onOpenClearCartModal={
                 handleOpenClearCartModal
               }
             />
 
-            <CarrinhoSummary
-              totalItems={
-                carrinho.totalItems
-              }
-              subtotal={
-                carrinho.subtotal
-              }
-              discount={
-                carrinho.discount
-              }
-              shippingLabel={
-                carrinho.shippingLabel
-              }
-              finalTotal={
-                carrinho.finalTotal
-              }
-              loading={
-                pedido.loading
-              }
-              isEmpty={
-                carrinho.isEmpty
-              }
-              onFinishOrder={
-                pedido.finalizarPedido
-              }
-            />
+            <div className="space-y-4">
+              <CarrinhoFrete
+                zipCode={
+                  frete.zipCode
+                }
+                options={
+                  frete.options
+                }
+                selectedOption={
+                  frete.selectedOption
+                }
+                loading={
+                  frete.loading
+                }
+                error={
+                  frete.error
+                }
+                onZipCodeChange={
+                  frete.handleZipCodeChange
+                }
+                onCalculate={
+                  frete.calcularFrete
+                }
+                onSelectOption={
+                  frete.selectOption
+                }
+              />
+
+              <CarrinhoSummary
+                totalItems={
+                  carrinho.totalItems
+                }
+                subtotal={
+                  carrinho.subtotal
+                }
+                discount={
+                  carrinho.discount
+                }
+                shippingLabel={
+                  shippingLabel
+                }
+                finalTotal={
+                  finalTotal
+                }
+                loading={
+                  pedido.loading
+                }
+                isEmpty={
+                  carrinho.isEmpty
+                }
+                onFinishOrder={
+                  pedido.finalizarPedido
+                }
+              />
+            </div>
           </div>
         )}
       </main>
