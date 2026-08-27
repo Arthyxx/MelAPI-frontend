@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 import {
   formatCurrency,
 } from '../../utils/formatCurrency';
@@ -12,6 +14,7 @@ interface CarrinhoFreteProps {
   selectedOption: FreteOption | null;
   loading: boolean;
   error: string;
+  zipCodeReadOnly?: boolean;
 
   onZipCodeChange: (
     value: string,
@@ -30,6 +33,7 @@ export function CarrinhoFrete({
   selectedOption,
   loading,
   error,
+  zipCodeReadOnly = false,
   onZipCodeChange,
   onCalculate,
   onSelectOption,
@@ -42,8 +46,9 @@ export function CarrinhoFrete({
         </p>
 
         <p className="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-          Informe o CEP de entrega para
-          consultar as opções disponíveis.
+          {zipCodeReadOnly
+            ? 'O frete será calculado para o CEP do seu endereço cadastrado.'
+            : 'Informe o CEP de entrega para consultar as opções disponíveis.'}
         </p>
       </div>
 
@@ -56,12 +61,17 @@ export function CarrinhoFrete({
           value={zipCode}
           placeholder="00000-000"
           aria-label="CEP de entrega"
+          readOnly={zipCodeReadOnly}
           onChange={(event) =>
             onZipCodeChange(
               event.target.value,
             )
           }
-          className="h-12 min-w-0 flex-1 rounded-2xl border border-amber-200 bg-white px-4 font-bold text-gray-900 outline-none transition placeholder:font-medium placeholder:text-gray-400 focus:border-amber-500 focus:ring-4 focus:ring-amber-100 dark:border-amber-800 dark:bg-gray-900 dark:text-white dark:focus:ring-amber-950"
+          className={`h-12 min-w-0 flex-1 rounded-2xl border border-amber-200 px-4 font-bold text-gray-900 outline-none transition placeholder:font-medium placeholder:text-gray-400 dark:border-amber-800 dark:text-white ${
+            zipCodeReadOnly
+              ? 'cursor-not-allowed bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
+              : 'bg-white focus:border-amber-500 focus:ring-4 focus:ring-amber-100 dark:bg-gray-900 dark:focus:ring-amber-950'
+          }`}
         />
 
         <button
@@ -75,6 +85,21 @@ export function CarrinhoFrete({
             : 'Calcular'}
         </button>
       </div>
+
+      {zipCodeReadOnly && (
+        <p className="mt-3 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+          Precisa entregar em outro
+          endereço?{' '}
+          <Link
+            to="/perfil"
+            className="font-black text-amber-700 underline decoration-amber-300 underline-offset-2 hover:text-amber-800 dark:text-amber-300"
+          >
+            Atualize seu endereço no
+            perfil
+          </Link>
+          .
+        </p>
+      )}
 
       {error && (
         <div

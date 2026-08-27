@@ -3,6 +3,7 @@ import type {
 } from 'axios';
 import {
   useEffect,
+  useRef,
   useState,
 } from 'react';
 
@@ -79,8 +80,16 @@ export function useFrete({
     isAuthenticated,
   } = useAuth();
 
+  const requestVersion =
+    useRef(0);
+
   const [zipCode, setZipCode] =
     useState('');
+
+  const [
+    profileZipCode,
+    setProfileZipCode,
+  ] = useState('');
 
   const [options, setOptions] =
     useState<FreteOption[]>([]);
@@ -103,37 +112,74 @@ export function useFrete({
       return;
     }
 
+    let active = true;
+
     const loadProfileZipCode =
       async () => {
         try {
           const perfil =
             await fetchPerfilApi();
 
-          if (perfil.zipCode) {
-            setZipCode(
-              formatZipCode(
-                perfil.zipCode,
-              ),
-            );
+          if (!active) {
+            return;
           }
+
+          if (!perfil.zipCode) {
+            setProfileZipCode('');
+            return;
+          }
+
+          const formattedZipCode =
+            formatZipCode(
+              perfil.zipCode,
+            );
+
+          setProfileZipCode(
+            formattedZipCode,
+          );
+
+          setZipCode(
+            formattedZipCode,
+          );
         } catch {
+          if (!active) {
+            return;
+          }
+
+          setProfileZipCode('');
+
           // O cliente poderá informar
           // o CEP manualmente.
         }
       };
 
     void loadProfileZipCode();
+
+    return () => {
+      active = false;
+    };
   }, [isAuthenticated]);
 
+  const zipCodeReadOnly =
+    isAuthenticated &&
+    Boolean(profileZipCode);
+
   const invalidateFrete = () => {
+    requestVersion.current += 1;
+
     setOptions([]);
     setSelectedOption(null);
     setError('');
+    setLoading(false);
   };
 
   const handleZipCodeChange = (
     value: string,
   ) => {
+    if (zipCodeReadOnly) {
+      return;
+    }
+
     setZipCode(
       formatZipCode(value),
     );
@@ -165,6 +211,12 @@ export function useFrete({
         return;
       }
 
+      const currentRequestVersion =
+        requestVersion.current + 1;
+
+      requestVersion.current =
+        currentRequestVersion;
+
       try {
         setLoading(true);
         setError('');
@@ -190,6 +242,13 @@ export function useFrete({
           });
 
         if (
+          requestVersion.current !==
+          currentRequestVersion
+        ) {
+          return;
+        }
+
+        if (
           response.data.length === 0
         ) {
           setError(
@@ -203,6 +262,13 @@ export function useFrete({
           response.data,
         );
       } catch (requestError) {
+        if (
+          requestVersion.current !==
+          currentRequestVersion
+        ) {
+          return;
+        }
+
         const axiosError =
           requestError as AxiosError<ApiErrorResponse>;
 
@@ -228,7 +294,12 @@ export function useFrete({
           ),
         );
       } finally {
-        setLoading(false);
+        if (
+          requestVersion.current ===
+          currentRequestVersion
+        ) {
+          setLoading(false);
+        }
       }
     };
 
@@ -241,6 +312,8 @@ export function useFrete({
 
   return {
     zipCode,
+    zipCodeReadOnly,
+
     options,
     selectedOption,
     loading,

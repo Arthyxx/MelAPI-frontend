@@ -1,48 +1,82 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { api } from '../services/api';
-import type { Pedido } from '../types/pedido';
-import { formatDate } from '../utils/formatDate';
-import { statusPedidoColors, statusPedidoLabels } from '../constants/statusPedido';
+import {
+  useEffect,
+  useState,
+} from 'react';
+import {
+  Link,
+} from 'react-router-dom';
+
+import {
+  statusPedidoColors,
+  statusPedidoLabels,
+} from '../constants/statusPedido';
+import {
+  api,
+} from '../services/api';
+import type {
+  Pedido,
+} from '../types/pedido';
+import {
+  formatCurrency,
+} from '../utils/formatCurrency';
+import {
+  formatDate,
+} from '../utils/formatDate';
 
 export function MeusPedidos() {
-  const [pedidos, setPedidos] = useState<Pedido[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [pedidos, setPedidos] =
+    useState<Pedido[]>([]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState('');
 
   useEffect(() => {
-    const fetchMeusPedidos = async () => {
-      try {
-        setError('');
-        setLoading(true);
+    const fetchMeusPedidos =
+      async () => {
+        try {
+          setError('');
+          setLoading(true);
 
-        const response = await api.get('/pedidos/meus-pedidos');
-        const data = Array.isArray(response.data) ? response.data : [];
+          const response =
+            await api.get<Pedido[]>(
+              '/pedidos/meus-pedidos',
+            );
 
-        setPedidos(data);
-      } catch (err) {
-        console.error('Erro ao carregar meus pedidos:', err);
-        setError('Erro ao carregar seus pedidos.');
-      } finally {
-        setLoading(false);
-      }
-    };
+          const data =
+            Array.isArray(
+              response.data,
+            )
+              ? response.data
+              : [];
 
-    fetchMeusPedidos();
+          setPedidos(data);
+        } catch (err) {
+          console.error(
+            'Erro ao carregar meus pedidos:',
+            err,
+          );
+
+          setError(
+            'Erro ao carregar seus pedidos.',
+          );
+        } finally {
+          setLoading(false);
+        }
+      };
+
+    void fetchMeusPedidos();
   }, []);
-
-  const formatCurrency = (value?: number | null) => {
-    return Number(value ?? 0).toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    });
-  };
 
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 dark:from-gray-950 dark:via-gray-900 dark:to-amber-950">
         <div className="text-center">
-          <div className="mb-4 text-7xl animate-bounce-soft">🍯</div>
+          <div className="mb-4 animate-bounce-soft text-7xl">
+            🍯
+          </div>
 
           <p className="text-xl font-semibold text-amber-700 dark:text-amber-300">
             Carregando seus pedidos...
@@ -59,7 +93,9 @@ export function MeusPedidos() {
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-700 shadow-inner">
-                <span className="text-3xl">📦</span>
+                <span className="text-3xl">
+                  📦
+                </span>
               </div>
 
               <div>
@@ -68,7 +104,8 @@ export function MeusPedidos() {
                 </h1>
 
                 <p className="text-sm text-amber-100">
-                  Acompanhe suas compras no Apiário Vitória Seven
+                  Acompanhe suas compras
+                  no Apiário Vitória Seven
                 </p>
               </div>
             </div>
@@ -102,26 +139,35 @@ export function MeusPedidos() {
             </h2>
 
             <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-              Veja o status e os produtos de cada pedido.
+              Veja o status, produtos e
+              entrega de cada pedido.
             </p>
           </div>
 
           <span className="w-fit rounded-full bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-800">
-            {pedidos.length} {pedidos.length === 1 ? 'pedido' : 'pedidos'}
+            {pedidos.length}{' '}
+            {pedidos.length === 1
+              ? 'pedido'
+              : 'pedidos'}
           </span>
         </div>
 
         {pedidos.length === 0 ? (
           <section className="mx-auto max-w-2xl overflow-hidden rounded-3xl border border-amber-200 bg-white shadow-2xl dark:border-amber-800 dark:bg-gray-900">
             <div className="bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 px-6 py-12 text-center text-white">
-              <div className="mb-4 text-7xl">🛍️</div>
+              <div className="mb-4 text-7xl">
+                🛍️
+              </div>
 
               <h2 className="text-3xl font-extrabold">
-                Você ainda não fez pedidos
+                Você ainda não fez
+                pedidos
               </h2>
 
               <p className="mx-auto mt-3 max-w-md text-amber-50">
-                Quando você finalizar uma compra, ela aparecerá aqui.
+                Quando você finalizar
+                uma compra, ela aparecerá
+                aqui.
               </p>
             </div>
 
@@ -136,105 +182,205 @@ export function MeusPedidos() {
           </section>
         ) : (
           <div className="space-y-6">
-            {pedidos.map((pedido) => {
-              const status = pedido.status ?? 'PENDENTE';
+            {pedidos.map(
+              (pedido) => {
+                const status =
+                  pedido.status ??
+                  'PENDENTE';
 
-              return (
-                <article
-                  key={pedido.id}
-                  className="overflow-hidden rounded-3xl border border-amber-200 bg-white shadow-lg transition hover:-translate-y-1 hover:shadow-2xl dark:border-amber-800 dark:bg-gray-900"
-                >
-                  <div className="flex flex-col gap-4 border-b border-amber-100 bg-amber-50 px-6 py-5 md:flex-row md:items-center md:justify-between dark:border-amber-900 dark:bg-amber-950/30">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <h3 className="text-xl font-extrabold text-amber-900 dark:text-amber-300">
-                          Pedido #{pedido.id}
-                        </h3>
+                const hasShipping =
+                  Boolean(
+                    pedido.shipping
+                      .serviceName ||
+                      pedido.shipping
+                        .companyName,
+                  );
 
-                        <span
-                          className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${
-                            statusPedidoColors[status] || 'bg-gray-100 text-gray-800'
-                          }`}
-                        >
-                          {statusPedidoLabels[status] || status}
-                        </span>
-                      </div>
-
-                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        Realizado em {formatDate(pedido.createdAt)}
-                      </p>
-                    </div>
-
-                    <div className="flex flex-col gap-3 text-left md:items-end md:text-right">
+                return (
+                  <article
+                    key={pedido.id}
+                    className="overflow-hidden rounded-3xl border border-amber-200 bg-white shadow-lg transition hover:-translate-y-1 hover:shadow-2xl dark:border-amber-800 dark:bg-gray-900"
+                  >
+                    <div className="flex flex-col gap-4 border-b border-amber-100 bg-amber-50 px-6 py-5 md:flex-row md:items-center md:justify-between dark:border-amber-900 dark:bg-amber-950/30">
                       <div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Total do pedido
+                        <div className="flex flex-wrap items-center gap-3">
+                          <h3 className="text-xl font-extrabold text-amber-900 dark:text-amber-300">
+                            Pedido #
+                            {pedido.id}
+                          </h3>
+
+                          <span
+                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${
+                              statusPedidoColors[
+                                status
+                              ] ||
+                              'bg-gray-100 text-gray-800'
+                            }`}
+                          >
+                            {statusPedidoLabels[
+                              status
+                            ] ||
+                              status}
+                          </span>
+                        </div>
+
+                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                          Realizado em{' '}
+                          {formatDate(
+                            pedido.createdAt,
+                          )}
                         </p>
 
-                        <p className="text-2xl font-black text-amber-700 dark:text-amber-300">
-                          {formatCurrency(pedido.totalPrice)}
-                        </p>
+                        {hasShipping ? (
+                          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600 dark:text-gray-300">
+                            <span className="font-bold">
+                              🚚{' '}
+                              {pedido
+                                .shipping
+                                .companyName ||
+                                'Transportadora'}
+                            </span>
+
+                            {pedido
+                              .shipping
+                              .serviceName && (
+                              <span>
+                                {
+                                  pedido
+                                    .shipping
+                                    .serviceName
+                                }
+                              </span>
+                            )}
+
+                            <span>
+                              Frete:{' '}
+                              <strong>
+                                {formatCurrency(
+                                  pedido.shippingPrice,
+                                )}
+                              </strong>
+                            </span>
+
+                            {pedido
+                              .shipping
+                              .deliveryTime !==
+                              null && (
+                              <span>
+                                Prazo:{' '}
+                                {
+                                  pedido
+                                    .shipping
+                                    .deliveryTime
+                                }{' '}
+                                {pedido
+                                  .shipping
+                                  .deliveryTime ===
+                                1
+                                  ? 'dia útil'
+                                  : 'dias úteis'}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="mt-3 text-xs font-medium text-gray-500 dark:text-gray-400">
+                            Dados de frete
+                            não registrados
+                            neste pedido.
+                          </p>
+                        )}
                       </div>
 
-                      <Link
-                        to={`/meus-pedidos/${pedido.id}`}
-                        className="inline-flex w-fit items-center justify-center rounded-full bg-amber-600 px-4 py-2 text-sm font-bold text-white shadow-md transition hover:bg-amber-700 hover:shadow-lg"
-                      >
-                        Ver detalhes
-                      </Link>
-                    </div>
-                  </div>
+                      <div className="flex flex-col gap-3 text-left md:items-end md:text-right">
+                        <div>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Total do pedido
+                          </p>
 
-                  <div className="p-6">
-                    <h4 className="mb-4 font-bold text-gray-800 dark:text-gray-100">
-                      Produtos
-                    </h4>
-
-                    <div className="space-y-3">
-                      {pedido.items?.length > 0 ? (
-                        pedido.items.map((item) => (
-                          <div
-                            key={item.id}
-                            className="flex flex-col gap-3 rounded-2xl border border-amber-100 bg-white p-4 sm:flex-row sm:items-center sm:justify-between dark:border-amber-900 dark:bg-gray-950"
-                          >
-                            <div className="flex items-center gap-4">
-                              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100 text-3xl dark:bg-amber-950">
-                                🍯
-                              </div>
-
-                              <div>
-                                <p className="font-bold text-amber-900 dark:text-amber-300">
-                                  {item.produtoName}
-                                </p>
-
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                  {item.quantity} unidade(s) x{' '}
-                                  {formatCurrency(item.unitPrice)}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="text-left sm:text-right">
-                              <p className="text-xs text-gray-500 dark:text-gray-400">
-                                Subtotal
-                              </p>
-
-                              <p className="font-extrabold text-amber-700 dark:text-amber-300">
-                                {formatCurrency(item.subtotal)}
-                              </p>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="rounded-2xl bg-gray-50 p-4 text-sm text-gray-500 dark:bg-gray-800">
-                          Nenhum item informado neste pedido.
+                          <p className="text-2xl font-black text-amber-700 dark:text-amber-300">
+                            {formatCurrency(
+                              pedido.totalPrice,
+                            )}
+                          </p>
                         </div>
-                      )}
+
+                        <Link
+                          to={`/meus-pedidos/${pedido.id}`}
+                          className="inline-flex w-fit items-center justify-center rounded-full bg-amber-600 px-4 py-2 text-sm font-bold text-white shadow-md transition hover:bg-amber-700 hover:shadow-lg"
+                        >
+                          Ver detalhes
+                        </Link>
+                      </div>
                     </div>
-                  </div>
-                </article>
-              );
-            })}
+
+                    <div className="p-6">
+                      <h4 className="mb-4 font-bold text-gray-800 dark:text-gray-100">
+                        Produtos
+                      </h4>
+
+                      <div className="space-y-3">
+                        {pedido.items
+                          ?.length > 0 ? (
+                          pedido.items.map(
+                            (item) => (
+                              <div
+                                key={
+                                  item.id
+                                }
+                                className="flex flex-col gap-3 rounded-2xl border border-amber-100 bg-white p-4 sm:flex-row sm:items-center sm:justify-between dark:border-amber-900 dark:bg-gray-950"
+                              >
+                                <div className="flex items-center gap-4">
+                                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100 text-3xl dark:bg-amber-950">
+                                    🍯
+                                  </div>
+
+                                  <div>
+                                    <p className="font-bold text-amber-900 dark:text-amber-300">
+                                      {
+                                        item.produtoName
+                                      }
+                                    </p>
+
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                      {
+                                        item.quantity
+                                      }{' '}
+                                      unidade(s)
+                                      x{' '}
+                                      {formatCurrency(
+                                        item.unitPrice,
+                                      )}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="text-left sm:text-right">
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    Subtotal
+                                  </p>
+
+                                  <p className="font-extrabold text-amber-700 dark:text-amber-300">
+                                    {formatCurrency(
+                                      item.subtotal,
+                                    )}
+                                  </p>
+                                </div>
+                              </div>
+                            ),
+                          )
+                        ) : (
+                          <div className="rounded-2xl bg-gray-50 p-4 text-sm text-gray-500 dark:bg-gray-800">
+                            Nenhum item
+                            informado neste
+                            pedido.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </article>
+                );
+              },
+            )}
           </div>
         )}
       </main>

@@ -59,6 +59,11 @@ export function Carrinho() {
         )
       : 'Não calculado';
 
+  const shippingSelected =
+    Boolean(
+      frete.selectedOption,
+    );
+
   const finalTotal =
     carrinho.subtotal -
     carrinho.discount +
@@ -172,6 +177,9 @@ export function Carrinho() {
                 zipCode={
                   frete.zipCode
                 }
+                zipCodeReadOnly={
+                  frete.zipCodeReadOnly
+                }
                 options={
                   frete.options
                 }
@@ -216,6 +224,9 @@ export function Carrinho() {
                 }
                 isEmpty={
                   carrinho.isEmpty
+                }
+                shippingSelected={
+                  shippingSelected
                 }
                 onFinishOrder={
                   pedido.finalizarPedido
