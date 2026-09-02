@@ -21,6 +21,9 @@ import {
 } from '../utils/formatDate';
 
 import {
+  PedidoPaymentAction,
+} from './pedido-detalhe/PedidoPaymentAction';
+import {
   PedidoShippingDetails,
 } from './pedido-detalhe/PedidoShippingDetails';
 
@@ -260,6 +263,11 @@ export function DetalhePedido() {
             </div>
           </div>
         </section>
+
+        <PedidoPaymentAction
+          pedidoId={pedido.id}
+          status={status}
+        />
 
         <section className="rounded-3xl border border-amber-200 bg-white p-6 shadow-xl dark:border-amber-800 dark:bg-gray-900">
           <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">

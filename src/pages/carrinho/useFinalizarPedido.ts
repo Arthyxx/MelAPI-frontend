@@ -23,6 +23,16 @@ interface ApiErrorResponse {
   error?: string;
 }
 
+interface PedidoCriadoResponse {
+  id: number;
+}
+
+interface CheckoutResponse {
+  pedidoId: number;
+  preferenceId: string;
+  checkoutUrl: string;
+}
+
 interface UseFinalizarPedidoOptions {
   items: CartItem[];
 
@@ -31,6 +41,24 @@ interface UseFinalizarPedidoOptions {
     | null;
 
   onOrderCreated: () => void;
+}
+
+function getApiErrorMessage(
+  error: AxiosError<ApiErrorResponse>,
+  fallbackMessage: string,
+) {
+  const apiMessage =
+    error.response?.data?.message;
+
+  if (Array.isArray(apiMessage)) {
+    return apiMessage.join(' ');
+  }
+
+  return (
+    apiMessage ||
+    error.response?.data?.error ||
+    fallbackMessage
+  );
 }
 
 export function useFinalizarPedido({
@@ -60,68 +88,110 @@ export function useFinalizarPedido({
 
   const finalizarPedido =
     async () => {
-      try {
-        clearMessages();
+      clearMessages();
 
-        if (!isAuthenticated) {
-          navigate('/login', {
-            replace: true,
-          });
+      if (!isAuthenticated) {
+        navigate('/login', {
+          replace: true,
+        });
 
-          return;
-        }
+        return;
+      }
 
-        if (items.length === 0) {
-          setError(
-            'O carrinho está vazio.',
-          );
-
-          return;
-        }
-
-        if (!shippingServiceId) {
-          setError(
-            'Calcule o frete e selecione uma opção de entrega antes de finalizar o pedido.',
-          );
-
-          return;
-        }
-
-        setLoading(true);
-
-        const payload = {
-          items: items.map(
-            (item) => ({
-              produtoId: item.id,
-
-              quantity:
-                item.quantity,
-            }),
-          ),
-
-          shippingServiceId,
-        };
-
-        await api.post(
-          '/pedidos',
-          payload,
+      if (items.length === 0) {
+        setError(
+          'O carrinho está vazio.',
         );
+
+        return;
+      }
+
+      if (!shippingServiceId) {
+        setError(
+          'Calcule o frete e selecione uma opção de entrega antes de finalizar o pedido.',
+        );
+
+        return;
+      }
+
+      setLoading(true);
+
+      let pedidoId: number | null =
+        null;
+
+      try {
+        const pedidoResponse =
+          await api.post<PedidoCriadoResponse>(
+            '/pedidos',
+            {
+              items: items.map(
+                (item) => ({
+                  produtoId:
+                    item.id,
+
+                  quantity:
+                    item.quantity,
+                }),
+              ),
+
+              shippingServiceId,
+            },
+          );
+
+        pedidoId =
+          pedidoResponse.data.id;
 
         onOrderCreated();
 
         setSuccess(
-          'Pedido criado com sucesso!',
+          `Pedido #${pedidoId} criado. Abrindo pagamento...`,
         );
 
-        window.setTimeout(() => {
-          navigate(
-            '/meus-pedidos',
-            {
-              replace: true,
-            },
+        const checkoutResponse =
+          await api.post<CheckoutResponse>(
+            `/pagamentos/pedidos/${pedidoId}/checkout`,
           );
-        }, 1200);
+
+        const checkoutUrl =
+          checkoutResponse.data
+            .checkoutUrl;
+
+        if (!checkoutUrl) {
+          throw new Error(
+            'URL de pagamento não retornada.',
+          );
+        }
+
+        window.location.assign(
+          checkoutUrl,
+        );
       } catch (requestError) {
+        if (
+          pedidoId !== null
+        ) {
+          console.error(
+            'Pedido criado, mas não foi possível iniciar o pagamento:',
+            requestError,
+          );
+
+          setError(
+            `O pedido #${pedidoId} foi criado, mas não foi possível abrir o pagamento. Acesse “Meus pedidos” para tentar pagar novamente.`,
+          );
+
+          setSuccess('');
+
+          window.setTimeout(() => {
+            navigate(
+              `/meus-pedidos/${pedidoId}`,
+              {
+                replace: true,
+              },
+            );
+          }, 2500);
+
+          return;
+        }
+
         const axiosError =
           requestError as AxiosError<ApiErrorResponse>;
 
@@ -141,25 +211,11 @@ export function useFinalizarPedido({
           },
         );
 
-        const apiMessage =
-          axiosError.response?.data
-            ?.message;
-
-        if (
-          Array.isArray(apiMessage)
-        ) {
-          setError(
-            apiMessage.join(' '),
-          );
-
-          return;
-        }
-
         setError(
-          apiMessage ||
-            axiosError.response
-              ?.data?.error ||
+          getApiErrorMessage(
+            axiosError,
             'Erro ao finalizar pedido. Verifique o estoque dos produtos e tente novamente.',
+          ),
         );
       } finally {
         setLoading(false);

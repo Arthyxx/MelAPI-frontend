@@ -70,6 +70,15 @@ const MeusPedidos = lazy(() =>
   })),
 );
 
+const PagamentoRetorno = lazy(() =>
+  import(
+    './pages/PagamentoRetorno'
+  ).then((module) => ({
+    default:
+      module.PagamentoRetorno,
+  })),
+);
+
 const Perfil = lazy(() =>
   import('./pages/Perfil').then(
     (module) => ({
@@ -259,6 +268,48 @@ function App() {
               element={
                 isAuthenticated ? (
                   <DetalhePedido />
+                ) : (
+                  <Navigate
+                    to="/login"
+                    replace
+                  />
+                )
+              }
+            />
+
+            <Route
+              path="/pagamento/sucesso"
+              element={
+                isAuthenticated ? (
+                  <PagamentoRetorno />
+                ) : (
+                  <Navigate
+                    to="/login"
+                    replace
+                  />
+                )
+              }
+            />
+
+            <Route
+              path="/pagamento/pendente"
+              element={
+                isAuthenticated ? (
+                  <PagamentoRetorno />
+                ) : (
+                  <Navigate
+                    to="/login"
+                    replace
+                  />
+                )
+              }
+            />
+
+            <Route
+              path="/pagamento/falhou"
+              element={
+                isAuthenticated ? (
+                  <PagamentoRetorno />
                 ) : (
                   <Navigate
                     to="/login"
