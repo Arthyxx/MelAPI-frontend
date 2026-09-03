@@ -47,13 +47,16 @@ api.interceptors.response.use(
       error.response?.status ===
       401;
 
-    const isLoginRequest =
-      error.config?.url ===
-      '/auth/login';
+    const requestUrl =
+      error.config?.url;
+
+    const isAuthRequest =
+      requestUrl === '/auth/login' ||
+      requestUrl === '/auth/google';
 
     if (
       isUnauthorized &&
-      !isLoginRequest
+      !isAuthRequest
     ) {
       localStorage.removeItem(
         'token',
@@ -89,6 +92,20 @@ export async function login(
       {
         email,
         password,
+      },
+    );
+
+  return response.data;
+}
+
+export async function loginWithGoogle(
+  credential: string,
+) {
+  const response =
+    await api.post(
+      '/auth/google',
+      {
+        credential,
       },
     );
 

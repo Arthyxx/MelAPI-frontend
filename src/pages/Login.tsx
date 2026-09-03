@@ -1,8 +1,18 @@
-﻿import { useState, type FormEvent } from 'react';
+﻿import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from 'react';
+
 import type { AxiosError } from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
+
 import { useAuth } from '../contexts/useAuth';
-import { login } from '../services/api';
+import {
+  login,
+  loginWithGoogle,
+} from '../services/api';
 
 interface LoginResponse {
   token: string;
@@ -13,15 +23,297 @@ interface ApiErrorResponse {
   error?: string;
 }
 
+interface GoogleCredentialResponse {
+  credential?: string;
+}
+
+interface GoogleIdConfiguration {
+  client_id: string;
+  callback: (
+    response: GoogleCredentialResponse,
+  ) => void;
+}
+
+interface GoogleButtonConfiguration {
+  theme?:
+    | 'outline'
+    | 'filled_blue'
+    | 'filled_black';
+
+  size?:
+    | 'small'
+    | 'medium'
+    | 'large';
+
+  type?: 'standard' | 'icon';
+
+  shape?:
+    | 'rectangular'
+    | 'pill'
+    | 'circle'
+    | 'square';
+
+  text?:
+    | 'signin_with'
+    | 'signup_with'
+    | 'continue_with'
+    | 'signin';
+
+  width?: number;
+}
+
+interface GoogleAccounts {
+  id: {
+    initialize: (
+      configuration: GoogleIdConfiguration,
+    ) => void;
+
+    renderButton: (
+      parent: HTMLElement,
+      options: GoogleButtonConfiguration,
+    ) => void;
+  };
+}
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: GoogleAccounts;
+    };
+  }
+}
+
+const googleClientId =
+  import.meta.env
+    .VITE_GOOGLE_CLIENT_ID
+    ?.trim();
+
+function getApiErrorMessage(
+  error: unknown,
+  fallback: string,
+) {
+  const axiosError =
+    error as AxiosError<ApiErrorResponse>;
+
+  const apiMessage =
+    axiosError.response?.data
+      ?.message;
+
+  if (Array.isArray(apiMessage)) {
+    return apiMessage.join(' ');
+  }
+
+  return (
+    apiMessage ||
+    axiosError.response?.data
+      ?.error ||
+    fallback
+  );
+}
+
 export function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [erro, setErro] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [email, setEmail] =
+    useState('');
+
+  const [password, setPassword] =
+    useState('');
+
+  const [
+    showPassword,
+    setShowPassword,
+  ] = useState(false);
+
+  const [erro, setErro] =
+    useState('');
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [
+    googleLoading,
+    setGoogleLoading,
+  ] = useState(false);
+
+  const googleButtonRef =
+    useRef<HTMLDivElement | null>(
+      null,
+    );
 
   const navigate = useNavigate();
+
   const { signIn } = useAuth();
+
+  const googleConfigError =
+    googleClientId
+      ? ''
+      : 'O login com Google ainda não está configurado.';
+
+  const displayedError =
+    erro || googleConfigError;
+
+  useEffect(() => {
+    let active = true;
+
+    if (!googleClientId) {
+      return;
+    }
+
+    const handleGoogleCredential =
+      async (
+        response: GoogleCredentialResponse,
+      ) => {
+        if (
+          !active ||
+          !response.credential
+        ) {
+          return;
+        }
+
+        try {
+          setErro('');
+          setGoogleLoading(true);
+
+          const loginResponse =
+            (await loginWithGoogle(
+              response.credential,
+            )) as LoginResponse;
+
+          signIn(
+            loginResponse.token,
+          );
+
+          navigate('/produtos', {
+            replace: true,
+          });
+        } catch (error) {
+          if (!active) {
+            return;
+          }
+
+          setErro(
+            getApiErrorMessage(
+              error,
+              'Não foi possível entrar com o Google.',
+            ),
+          );
+        } finally {
+          if (active) {
+            setGoogleLoading(false);
+          }
+        }
+      };
+
+    const initializeGoogle =
+      () => {
+        if (
+          !active ||
+          !window.google ||
+          !googleButtonRef.current
+        ) {
+          return;
+        }
+
+        window.google.accounts.id
+          .initialize({
+            client_id:
+              googleClientId,
+            callback:
+              handleGoogleCredential,
+          });
+
+        googleButtonRef.current
+          .replaceChildren();
+
+        window.google.accounts.id
+          .renderButton(
+            googleButtonRef.current,
+            {
+              theme: 'outline',
+              size: 'large',
+              type: 'standard',
+              shape: 'pill',
+              text: 'continue_with',
+              width: 320,
+            },
+          );
+      };
+
+    const existingScript =
+      document.querySelector<HTMLScriptElement>(
+        'script[data-google-identity]',
+      );
+
+    if (existingScript) {
+      if (window.google) {
+        initializeGoogle();
+      } else {
+        existingScript.addEventListener(
+          'load',
+          initializeGoogle,
+        );
+      }
+
+      return () => {
+        active = false;
+
+        existingScript.removeEventListener(
+          'load',
+          initializeGoogle,
+        );
+      };
+    }
+
+    const script =
+      document.createElement(
+        'script',
+      );
+
+    script.src =
+      'https://accounts.google.com/gsi/client';
+
+    script.async = true;
+    script.defer = true;
+
+    script.dataset.googleIdentity =
+      'true';
+
+    script.addEventListener(
+      'load',
+      initializeGoogle,
+    );
+
+    const handleScriptError =
+      () => {
+        if (active) {
+          setErro(
+            'Não foi possível carregar o login com Google.',
+          );
+        }
+      };
+
+    script.addEventListener(
+      'error',
+      handleScriptError,
+    );
+
+    document.head.appendChild(
+      script,
+    );
+
+    return () => {
+      active = false;
+
+      script.removeEventListener(
+        'load',
+        initializeGoogle,
+      );
+
+      script.removeEventListener(
+        'error',
+        handleScriptError,
+      );
+    };
+  }, [navigate, signIn]);
 
   const handleSubmit = async (
     event: FormEvent<HTMLFormElement>,
@@ -32,10 +324,13 @@ export function Login() {
       setErro('');
       setLoading(true);
 
-      const response = (await login(
-        email.trim().toLowerCase(),
-        password,
-      )) as LoginResponse;
+      const response =
+        (await login(
+          email
+            .trim()
+            .toLowerCase(),
+          password,
+        )) as LoginResponse;
 
       signIn(response.token);
 
@@ -43,24 +338,11 @@ export function Login() {
         replace: true,
       });
     } catch (error) {
-      const axiosError = error as AxiosError<ApiErrorResponse>;
-      const apiMessage = axiosError.response?.data?.message;
-
-      console.error('Erro ao fazer login:', {
-        statusCode: axiosError.response?.status,
-        data: axiosError.response?.data,
-        message: axiosError.message,
-      });
-
-      if (Array.isArray(apiMessage)) {
-        setErro(apiMessage.join(' '));
-        return;
-      }
-
       setErro(
-        apiMessage ||
-          axiosError.response?.data?.error ||
+        getApiErrorMessage(
+          error,
           'E-mail ou senha inválidos.',
+        ),
       );
     } finally {
       setLoading(false);
@@ -100,20 +382,24 @@ export function Login() {
 
             <div className="mt-8 grid gap-4">
               <div className="rounded-3xl border border-amber-100 bg-white/80 p-5 shadow-md transition hover:-translate-y-1 hover:shadow-xl dark:border-amber-900 dark:bg-gray-950/70">
-                <div className="text-3xl">📦</div>
+                <div className="text-3xl">
+                  📦
+                </div>
 
                 <h3 className="mt-3 font-extrabold text-amber-900 dark:text-amber-300">
                   Histórico de pedidos
                 </h3>
 
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Consulte status, produtos comprados e detalhes de
-                  cada pedido.
+                  Consulte status, produtos comprados e detalhes de cada
+                  pedido.
                 </p>
               </div>
 
               <div className="rounded-3xl border border-amber-100 bg-white/80 p-5 shadow-md transition hover:-translate-y-1 hover:shadow-xl dark:border-amber-900 dark:bg-gray-950/70">
-                <div className="text-3xl">🛒</div>
+                <div className="text-3xl">
+                  🛒
+                </div>
 
                 <h3 className="mt-3 font-extrabold text-amber-900 dark:text-amber-300">
                   Compra simples
@@ -126,7 +412,9 @@ export function Login() {
               </div>
 
               <div className="rounded-3xl border border-amber-100 bg-white/80 p-5 shadow-md transition hover:-translate-y-1 hover:shadow-xl dark:border-amber-900 dark:bg-gray-950/70">
-                <div className="text-3xl">🐝</div>
+                <div className="text-3xl">
+                  🐝
+                </div>
 
                 <h3 className="mt-3 font-extrabold text-amber-900 dark:text-amber-300">
                   Produtos naturais
@@ -167,15 +455,52 @@ export function Login() {
             </div>
 
             <div className="p-6 sm:p-10">
-              {erro && (
+              {displayedError && (
                 <div className="mb-6 animate-fade-in rounded-2xl border border-red-300 bg-red-50 px-5 py-4 text-sm font-medium text-red-700 shadow-sm dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
-                  {erro}
+                  {displayedError}
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-6">
+              {googleClientId && (
+                <>
+                  <div className="mb-6 flex flex-col items-center">
+                    <div
+                      ref={googleButtonRef}
+                      className={
+                        googleLoading
+                          ? 'pointer-events-none opacity-60'
+                          : ''
+                      }
+                    />
+
+                    {googleLoading && (
+                      <p className="mt-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Entrando com Google...
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="mb-6 flex items-center gap-4">
+                    <div className="h-px flex-1 bg-amber-200 dark:bg-amber-900" />
+
+                    <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                      ou entre com e-mail
+                    </span>
+
+                    <div className="h-px flex-1 bg-amber-200 dark:bg-amber-900" />
+                  </div>
+                </>
+              )}
+
+              <form
+                onSubmit={handleSubmit}
+                className="space-y-6"
+              >
                 <div className="animate-fade-in-up delay-100">
-                  <label htmlFor="email" className={labelClass}>
+                  <label
+                    htmlFor="email"
+                    className={labelClass}
+                  >
                     E-mail
                   </label>
 
@@ -190,7 +515,9 @@ export function Login() {
                       placeholder="seuemail@email.com"
                       value={email}
                       onChange={(event) =>
-                        setEmail(event.target.value)
+                        setEmail(
+                          event.target.value,
+                        )
                       }
                       className={`${inputClass} pl-12`}
                       autoComplete="email"
@@ -200,7 +527,10 @@ export function Login() {
                 </div>
 
                 <div className="animate-fade-in-up delay-200">
-                  <label htmlFor="password" className={labelClass}>
+                  <label
+                    htmlFor="password"
+                    className={labelClass}
+                  >
                     Senha
                   </label>
 
@@ -211,11 +541,17 @@ export function Login() {
 
                     <input
                       id="password"
-                      type={showPassword ? 'text' : 'password'}
+                      type={
+                        showPassword
+                          ? 'text'
+                          : 'password'
+                      }
                       placeholder="Digite sua senha"
                       value={password}
                       onChange={(event) =>
-                        setPassword(event.target.value)
+                        setPassword(
+                          event.target.value,
+                        )
                       }
                       className={`${inputClass} px-12`}
                       autoComplete="current-password"
@@ -226,12 +562,17 @@ export function Login() {
                       type="button"
                       onClick={() =>
                         setShowPassword(
-                          (previousValue) => !previousValue,
+                          (
+                            previousValue,
+                          ) =>
+                            !previousValue,
                         )
                       }
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-amber-700 transition hover:text-amber-900 dark:text-amber-300"
                     >
-                      {showPassword ? 'Ocultar' : 'Ver'}
+                      {showPassword
+                        ? 'Ocultar'
+                        : 'Ver'}
                     </button>
                   </div>
                 </div>
@@ -252,7 +593,10 @@ export function Login() {
                 <div className="animate-fade-in-up space-y-4 delay-400">
                   <button
                     type="submit"
-                    disabled={loading}
+                    disabled={
+                      loading ||
+                      googleLoading
+                    }
                     className="group relative w-full overflow-hidden rounded-2xl bg-gradient-to-r from-amber-600 via-yellow-600 to-amber-700 px-6 py-4 font-black text-white shadow-xl transition duration-300 hover:-translate-y-1 hover:shadow-2xl disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     <span className="absolute inset-0 translate-x-[-100%] bg-white/20 transition duration-700 group-hover:translate-x-[100%]" />
@@ -266,6 +610,7 @@ export function Login() {
                       ) : (
                         <>
                           Entrar na loja
+
                           <span className="transition group-hover:translate-x-1">
                             →
                           </span>
@@ -285,17 +630,23 @@ export function Login() {
 
               <div className="mt-8 grid grid-cols-3 gap-2 text-center text-xs text-gray-500 dark:text-gray-400">
                 <div className="rounded-2xl bg-gray-50 p-3 dark:bg-gray-800">
-                  <div className="text-lg">🍯</div>
+                  <div className="text-lg">
+                    🍯
+                  </div>
                   Mel puro
                 </div>
 
                 <div className="rounded-2xl bg-gray-50 p-3 dark:bg-gray-800">
-                  <div className="text-lg">📦</div>
+                  <div className="text-lg">
+                    📦
+                  </div>
                   Pedidos
                 </div>
 
                 <div className="rounded-2xl bg-gray-50 p-3 dark:bg-gray-800">
-                  <div className="text-lg">🛒</div>
+                  <div className="text-lg">
+                    🛒
+                  </div>
                   Carrinho
                 </div>
               </div>
