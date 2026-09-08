@@ -13,6 +13,15 @@ export interface PerfilFormData {
   role?: string;
 }
 
+export interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface ChangePasswordResponse {
+  message: string;
+}
+
 export interface ApiErrorResponse {
   message?: string | string[];
   error?: string;

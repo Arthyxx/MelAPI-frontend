@@ -1,6 +1,8 @@
 import { api } from '../../services/api';
 
 import type {
+  ChangePasswordPayload,
+  ChangePasswordResponse,
   PerfilFormData,
 } from './perfil.types';
 
@@ -22,6 +24,18 @@ export async function updatePerfilApi(
   const response =
     await api.patch<PerfilFormData>(
       '/clientes/me',
+      payload,
+    );
+
+  return response.data;
+}
+
+export async function changePasswordApi(
+  payload: ChangePasswordPayload,
+) {
+  const response =
+    await api.patch<ChangePasswordResponse>(
+      '/clientes/me/password',
       payload,
     );
 

@@ -17,6 +17,9 @@ import {
   PerfilPersonalData,
 } from './perfil/PerfilPersonalData';
 import {
+  PerfilSecurity,
+} from './perfil/PerfilSecurity';
+import {
   usePerfilForm,
 } from './perfil/usePerfilForm';
 
@@ -59,9 +62,8 @@ export function Perfil() {
                 </h2>
 
                 <p className="mt-2 text-sm text-amber-50">
-                  Esses dados ajudam no
-                  contato e na entrega
-                  dos produtos.
+                  Esses dados ajudam no contato e na
+                  entrega dos produtos.
                 </p>
               </div>
 
@@ -99,6 +101,8 @@ export function Perfil() {
             </form>
           </div>
         </section>
+
+        <PerfilSecurity />
       </main>
     </div>
   );
