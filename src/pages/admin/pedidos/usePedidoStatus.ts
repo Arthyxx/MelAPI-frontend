@@ -2,6 +2,7 @@ import type { AxiosError } from 'axios';
 import { useState } from 'react';
 
 import {
+  refundPedidoApi,
   updatePedidoStatusApi,
 } from './pedido.api';
 
@@ -23,6 +24,11 @@ export function usePedidoStatus({
   const [
     updatingId,
     setUpdatingId,
+  ] = useState<number | null>(null);
+
+  const [
+    refundingId,
+    setRefundingId,
   ] = useState<number | null>(null);
 
   const [error, setError] =
@@ -86,10 +92,69 @@ export function usePedidoStatus({
     }
   };
 
+  const refundPedido = async (
+    pedidoId: number,
+  ) => {
+    try {
+      clearMessages();
+
+      setRefundingId(
+        pedidoId,
+      );
+
+      const result =
+        await refundPedidoApi(
+          pedidoId,
+        );
+
+      if (result.refundAmount !== undefined) {
+        setSuccess(
+          `Pedido #${pedidoId} cancelado e reembolsado com sucesso. Valor reembolsado: R$ ${result.refundAmount.toFixed(
+            2,
+          )}.`,
+        );
+      } else {
+        setSuccess(
+          `Pedido #${pedidoId} cancelado e reembolsado com sucesso.`,
+        );
+      }
+
+      await onUpdated();
+    } catch (requestError) {
+      const axiosError =
+        requestError as AxiosError<ApiErrorResponse>;
+
+      console.error(
+        'Erro ao reembolsar pedido:',
+        {
+          statusCode:
+            axiosError.response
+              ?.status,
+          data:
+            axiosError.response
+              ?.data,
+          message:
+            axiosError.message,
+        },
+      );
+
+      setError(
+        getErrorMessage(
+          axiosError,
+          'Erro ao cancelar e reembolsar o pedido.',
+        ),
+      );
+    } finally {
+      setRefundingId(null);
+    }
+  };
+
   return {
     updatingId,
+    refundingId,
     error,
     success,
     updateStatus,
+    refundPedido,
   };
 }

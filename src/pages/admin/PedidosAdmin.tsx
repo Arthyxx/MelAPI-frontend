@@ -119,8 +119,14 @@ export function PedidosAdmin() {
             updatingId={
               pedidoStatus.updatingId
             }
+            refundingId={
+              pedidoStatus.refundingId
+            }
             onUpdateStatus={
               pedidoStatus.updateStatus
+            }
+            onRefundPedido={
+              pedidoStatus.refundPedido
             }
           />
         </PedidosPagination>

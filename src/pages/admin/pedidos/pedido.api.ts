@@ -13,6 +13,14 @@ interface FetchPedidosParams {
   status?: string;
 }
 
+interface ReembolsoPedidoResponse {
+  pedidoId: number;
+  status: string;
+  refunded: boolean;
+  refundId?: string;
+  refundAmount?: number;
+}
+
 export async function fetchPedidosApi(
   params: FetchPedidosParams,
 ) {
@@ -37,4 +45,15 @@ export async function updatePedidoStatusApi(
       status,
     },
   );
+}
+
+export async function refundPedidoApi(
+  pedidoId: number,
+) {
+  const response =
+    await api.post<ReembolsoPedidoResponse>(
+      `/pagamentos/pedidos/${pedidoId}/reembolso`,
+    );
+
+  return response.data;
 }
