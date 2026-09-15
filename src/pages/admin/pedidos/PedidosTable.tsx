@@ -17,26 +17,16 @@ interface PedidosTableProps {
   loading: boolean;
   updatingId: number | null;
   refundingId: number | null;
-  onUpdateStatus: (
-    pedidoId: number,
-    status: string,
-  ) => void;
-  onRefundPedido: (
-    pedidoId: number,
-  ) => Promise<void>;
+  onUpdateStatus: (pedidoId: number, status: string) => void;
+  onRefundPedido: (pedidoId: number) => Promise<void>;
 }
 
-const allowedStatusTransitions: Record<
-  string,
-  string[]
-> = {
+const allowedStatusTransitions: Record<string, string[]> = {
   PENDENTE: ['PENDENTE', 'CANCELADO'],
   PAGO: ['PAGO', 'CONFIRMADO'],
   CONFIRMADO: ['CONFIRMADO', 'PREPARANDO'],
   PREPARANDO: ['PREPARANDO', 'ENVIADO'],
-  CANCELAMENTO_PENDENTE: [
-    'CANCELAMENTO_PENDENTE',
-  ],
+  CANCELAMENTO_PENDENTE: ['CANCELAMENTO_PENDENTE'],
   ENVIADO: ['ENVIADO', 'ENTREGUE'],
   ENTREGUE: ['ENTREGUE'],
   CANCELADO: ['CANCELADO'],
@@ -46,6 +36,7 @@ const refundableStatuses = new Set([
   'PAGO',
   'CONFIRMADO',
   'PREPARANDO',
+  'CANCELAMENTO_PENDENTE',
 ]);
 
 export function PedidosTable({
@@ -56,10 +47,7 @@ export function PedidosTable({
   onUpdateStatus,
   onRefundPedido,
 }: PedidosTableProps) {
-  const [
-    refundPedidoId,
-    setRefundPedidoId,
-  ] = useState<number | null>(null);
+  const [refundPedidoId, setRefundPedidoId] = useState<number | null>(null);
 
   if (loading) {
     return (
@@ -81,14 +69,19 @@ export function PedidosTable({
     );
   }
 
+  const selectedRefundPedido = pedidos.find(
+    (pedido) => pedido.id === refundPedidoId,
+  );
+
+  const isResumingRefund =
+    selectedRefundPedido?.status === 'CANCELAMENTO_PENDENTE';
+
   const handleConfirmRefund = async () => {
-    if (refundPedidoId === null) {
+    if (refundPedidoId === null || refundingId !== null) {
       return;
     }
 
-    await onRefundPedido(
-      refundPedidoId,
-    );
+    await onRefundPedido(refundPedidoId);
 
     setRefundPedidoId(null);
   };
@@ -99,76 +92,38 @@ export function PedidosTable({
         <table className="w-full min-w-[1320px] border-collapse">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-black uppercase tracking-wide text-gray-500">
-              <th className="px-6 py-4">
-                Pedido
-              </th>
-
-              <th className="px-6 py-4">
-                Cliente
-              </th>
-
-              <th className="px-6 py-4">
-                Produtos
-              </th>
-
-              <th className="px-6 py-4">
-                Frete
-              </th>
-
-              <th className="px-6 py-4">
-                Total
-              </th>
-
-              <th className="px-6 py-4">
-                Status
-              </th>
-
-              <th className="px-6 py-4">
-                Data
-              </th>
-
-              <th className="px-6 py-4 text-right">
-                Atualizar
-              </th>
+              <th className="px-6 py-4">Pedido</th>
+              <th className="px-6 py-4">Cliente</th>
+              <th className="px-6 py-4">Produtos</th>
+              <th className="px-6 py-4">Frete</th>
+              <th className="px-6 py-4">Total</th>
+              <th className="px-6 py-4">Status</th>
+              <th className="px-6 py-4">Data</th>
+              <th className="px-6 py-4 text-right">Atualizar</th>
             </tr>
           </thead>
 
           <tbody>
             {pedidos.map((pedido) => {
-              const status =
-                pedido.status ?? 'PENDENTE';
+              const status = pedido.status ?? 'PENDENTE';
 
-              const isUpdating =
-                updatingId === pedido.id;
+              const isUpdating = updatingId === pedido.id;
+              const isRefunding = refundingId === pedido.id;
+              const isRefundPending = status === 'CANCELAMENTO_PENDENTE';
 
-              const isRefunding =
-                refundingId === pedido.id;
-
-              const hasShipping =
-                Boolean(
-                  pedido.shipping
-                    .serviceName ||
-                    pedido.shipping
-                      .companyName,
-                );
+              const hasShipping = Boolean(
+                pedido.shipping.serviceName || pedido.shipping.companyName,
+              );
 
               const allowedStatuses =
-                allowedStatusTransitions[
-                  status
-                ] ?? [status];
+                allowedStatusTransitions[status] ?? [status];
 
-              const availableStatusOptions =
-                statusPedidoOptions.filter(
-                  (statusOption) =>
-                    allowedStatuses.includes(
-                      statusOption.value,
-                    ),
-                );
+              const availableStatusOptions = statusPedidoOptions.filter(
+                (statusOption) =>
+                  allowedStatuses.includes(statusOption.value),
+              );
 
-              const canRefund =
-                refundableStatuses.has(
-                  status,
-                );
+              const canRefund = refundableStatuses.has(status);
 
               return (
                 <tr
@@ -182,11 +137,8 @@ export function PedidosTable({
                       </p>
 
                       <p className="text-xs text-gray-500">
-                        {pedido.items
-                          ?.length || 0}{' '}
-                        {(pedido.items
-                          ?.length ||
-                          0) === 1
+                        {pedido.items?.length || 0}{' '}
+                        {(pedido.items?.length || 0) === 1
                           ? 'produto'
                           : 'produtos'}
                       </p>
@@ -196,8 +148,7 @@ export function PedidosTable({
                   <td className="px-6 py-4">
                     <div>
                       <p className="font-black text-gray-900">
-                        {pedido.clienteName ||
-                          'Cliente não informado'}
+                        {pedido.clienteName || 'Cliente não informado'}
                       </p>
 
                       <p className="text-xs font-medium text-gray-500">
@@ -212,31 +163,24 @@ export function PedidosTable({
 
                   <td className="px-6 py-4">
                     <div className="max-w-sm space-y-2">
-                      {pedido.items
-                        ?.length > 0 ? (
-                        pedido.items.map(
-                          (item) => (
-                            <div
-                              key={item.id}
-                              className="rounded-2xl bg-gray-50 px-3 py-2 text-sm"
-                            >
-                              <span className="font-black text-gray-800">
-                                {
-                                  item.produtoName
-                                }
-                              </span>
+                      {pedido.items?.length > 0 ? (
+                        pedido.items.map((item) => (
+                          <div
+                            key={item.id}
+                            className="rounded-2xl bg-gray-50 px-3 py-2 text-sm"
+                          >
+                            <span className="font-black text-gray-800">
+                              {item.produtoName}
+                            </span>
 
-                              <span className="ml-2 text-gray-500">
-                                x
-                                {item.quantity}
-                              </span>
-                            </div>
-                          ),
-                        )
+                            <span className="ml-2 text-gray-500">
+                              x{item.quantity}
+                            </span>
+                          </div>
+                        ))
                       ) : (
                         <span className="text-sm text-gray-500">
-                          Nenhum item
-                          informado
+                          Nenhum item informado
                         </span>
                       )}
                     </div>
@@ -247,41 +191,23 @@ export function PedidosTable({
                       <div className="min-w-44">
                         <p className="font-black text-gray-900">
                           🚚{' '}
-                          {pedido.shipping
-                            .companyName ||
-                            'Transportadora'}
+                          {pedido.shipping.companyName || 'Transportadora'}
                         </p>
 
-                        {pedido.shipping
-                          .serviceName && (
+                        {pedido.shipping.serviceName && (
                           <p className="mt-1 text-xs font-medium text-gray-500">
-                            {
-                              pedido
-                                .shipping
-                                .serviceName
-                            }
+                            {pedido.shipping.serviceName}
                           </p>
                         )}
 
                         <p className="mt-2 text-sm font-black text-amber-700">
-                          {formatCurrency(
-                            pedido.shippingPrice,
-                          )}
+                          {formatCurrency(pedido.shippingPrice)}
                         </p>
 
-                        {pedido.shipping
-                          .deliveryTime !==
-                          null && (
+                        {pedido.shipping.deliveryTime !== null && (
                           <p className="mt-1 text-xs text-gray-500">
-                            Prazo:{' '}
-                            {
-                              pedido
-                                .shipping
-                                .deliveryTime
-                            }{' '}
-                            {pedido.shipping
-                              .deliveryTime ===
-                            1
+                            Prazo: {pedido.shipping.deliveryTime}{' '}
+                            {pedido.shipping.deliveryTime === 1
                               ? 'dia útil'
                               : 'dias úteis'}
                           </p>
@@ -297,9 +223,7 @@ export function PedidosTable({
                   <td className="px-6 py-4">
                     <div>
                       <p className="font-black text-amber-700">
-                        {formatCurrency(
-                          pedido.totalPrice,
-                        )}
+                        {formatCurrency(pedido.totalPrice)}
                       </p>
 
                       {hasShipping && (
@@ -313,83 +237,61 @@ export function PedidosTable({
                   <td className="px-6 py-4">
                     <span
                       className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-black ${
-                        statusPedidoColors[
-                          status
-                        ] ||
+                        statusPedidoColors[status] ||
                         'bg-gray-100 text-gray-800'
                       }`}
                     >
-                      {statusPedidoLabels[
-                        status
-                      ] || status}
+                      {statusPedidoLabels[status] || status}
                     </span>
                   </td>
 
                   <td className="px-6 py-4 text-sm font-medium text-gray-600">
-                    {formatDate(
-                      pedido.createdAt,
-                    )}
+                    {formatDate(pedido.createdAt)}
                   </td>
 
                   <td className="px-6 py-4">
                     <div className="flex flex-col items-end gap-2">
                       <select
                         value={pedido.status}
-                        onChange={(
-                          event,
-                        ) =>
-                          onUpdateStatus(
-                            pedido.id,
-                            event.target
-                              .value,
-                          )
+                        onChange={(event) =>
+                          onUpdateStatus(pedido.id, event.target.value)
                         }
                         disabled={
                           isUpdating ||
                           isRefunding ||
-                          availableStatusOptions.length <=
-                            1
+                          availableStatusOptions.length <= 1
                         }
                         className="h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm font-bold text-gray-700 outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        {availableStatusOptions.map(
-                          (
-                            statusOption,
-                          ) => (
-                            <option
-                              key={
-                                statusOption.value
-                              }
-                              value={
-                                statusOption.value
-                              }
-                            >
-                              {
-                                statusOption.label
-                              }
-                            </option>
-                          ),
-                        )}
+                        {availableStatusOptions.map((statusOption) => (
+                          <option
+                            key={statusOption.value}
+                            value={statusOption.value}
+                          >
+                            {statusOption.label}
+                          </option>
+                        ))}
                       </select>
 
                       {canRefund && (
                         <button
                           type="button"
-                          onClick={() =>
-                            setRefundPedidoId(
-                              pedido.id,
-                            )
-                          }
-                          disabled={
-                            isUpdating ||
-                            isRefunding
-                          }
+                          onClick={() => setRefundPedidoId(pedido.id)}
+                          disabled={isUpdating || refundingId !== null}
                           className="rounded-xl bg-red-600 px-3 py-2 text-xs font-black text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {isRefunding
-                            ? 'Reembolsando...'
-                            : 'Cancelar e reembolsar'}
+                            ? 'Processando reembolso...'
+                            : isRefundPending
+                              ? 'Retomar reembolso'
+                              : 'Cancelar e reembolsar'}
                         </button>
+                      )}
+
+                      {isRefundPending && (
+                        <p className="max-w-56 text-right text-xs text-amber-700">
+                          O cancelamento aguarda a confirmação do reembolso.
+                        </p>
                       )}
                     </div>
 
@@ -408,14 +310,23 @@ export function PedidosTable({
 
       <ConfirmModal
         open={refundPedidoId !== null}
-        title="Cancelar e reembolsar pedido?"
-        description="O pagamento será reembolsado pelo Mercado Pago. O pedido só será cancelado e o estoque devolvido depois que o reembolso for confirmado."
-        confirmText="Cancelar e reembolsar"
+        title={
+          isResumingRefund
+            ? 'Retomar reembolso do pedido?'
+            : 'Cancelar e reembolsar pedido?'
+        }
+        description={
+          isResumingRefund
+            ? 'Vamos tentar concluir o reembolso pendente. O pedido só será cancelado e o estoque devolvido após a confirmação do reembolso.'
+            : 'O pagamento será reembolsado pelo Mercado Pago. O pedido só será cancelado e o estoque devolvido depois que o reembolso for confirmado.'
+        }
+        confirmText={
+          isResumingRefund ? 'Retomar reembolso' : 'Cancelar e reembolsar'
+        }
         cancelText="Voltar"
         variant="danger"
         loading={
-          refundPedidoId !== null &&
-          refundingId === refundPedidoId
+          refundPedidoId !== null && refundingId === refundPedidoId
         }
         onConfirm={() => {
           void handleConfirmRefund();
