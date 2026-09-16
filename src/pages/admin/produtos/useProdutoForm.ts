@@ -24,9 +24,7 @@ import type {
   ProdutoFormData,
 } from './produto.types';
 
-import {
-  getErrorMessage,
-} from './produto.utils';
+import { getErrorMessage } from './produto.utils';
 
 interface UseProdutoFormOptions {
   onCreated: () => Promise<void>;
@@ -37,30 +35,24 @@ export function useProdutoForm({
   onCreated,
   onUpdated,
 }: UseProdutoFormOptions) {
-  const [editingId, setEditingId] =
+  const [editingId, setEditingId] = useState<number | null>(null);
+
+  const [originalStockQuantity, setOriginalStockQuantity] =
     useState<number | null>(null);
 
   const [formData, setFormData] =
-    useState<ProdutoFormData>(
-      initialFormData,
-    );
+    useState<ProdutoFormData>(initialFormData);
 
-  const [
-    selectedImage,
-    setSelectedImage,
-  ] = useState<File | null>(null);
+  const [selectedImage, setSelectedImage] =
+    useState<File | null>(null);
 
-  const [saving, setSaving] =
-    useState(false);
-
-  const [error, setError] =
-    useState('');
-
-  const [success, setSuccess] =
-    useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const resetForm = () => {
     setEditingId(null);
+    setOriginalStockQuantity(null);
     setFormData(initialFormData);
     setSelectedImage(null);
   };
@@ -84,45 +76,30 @@ export function useProdutoForm({
   };
 
   const handleImageChange = (
-    event:
-      ChangeEvent<HTMLInputElement>,
+    event: ChangeEvent<HTMLInputElement>,
   ) => {
     clearMessages();
 
-    const file =
-      event.target.files?.[0];
+    const file = event.target.files?.[0];
 
     if (!file) {
       setSelectedImage(null);
       return;
     }
 
-    if (
-      !ALLOWED_IMAGE_TYPES.includes(
-        file.type,
-      )
-    ) {
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
       setSelectedImage(null);
       event.target.value = '';
 
-      setError(
-        'Selecione uma imagem JPG, PNG ou WEBP.',
-      );
-
+      setError('Selecione uma imagem JPG, PNG ou WEBP.');
       return;
     }
 
-    if (
-      file.size >
-      MAX_IMAGE_SIZE
-    ) {
+    if (file.size > MAX_IMAGE_SIZE) {
       setSelectedImage(null);
       event.target.value = '';
 
-      setError(
-        'A imagem deve ter no máximo 5 MB.',
-      );
-
+      setError('A imagem deve ter no máximo 5 MB.');
       return;
     }
 
@@ -133,78 +110,78 @@ export function useProdutoForm({
     clearMessages();
     setSelectedImage(null);
 
-    setFormData(
-      (currentFormData) => ({
-        ...currentFormData,
-        imageUrl: '',
-        imagePublicId: '',
-      }),
-    );
+    setFormData((currentFormData) => ({
+      ...currentFormData,
+      imageUrl: '',
+      imagePublicId: '',
+    }));
   };
 
-  const getImageData =
-    async () => {
-      if (!selectedImage) {
-        return {
-          imageUrl:
-            formData.imageUrl.trim() ||
-            undefined,
+  const getImageData = async () => {
+    if (!selectedImage) {
+      return {
+        imageUrl: formData.imageUrl.trim() || undefined,
+        imagePublicId: formData.imagePublicId.trim() || undefined,
+      };
+    }
 
-          imagePublicId:
-            formData.imagePublicId.trim() ||
-            undefined,
-        };
-      }
-
-      return uploadProdutoImageApi(
-        selectedImage,
-      );
-    };
+    return uploadProdutoImageApi(selectedImage);
+  };
 
   const handleSubmit = async (
-    event:
-      FormEvent<HTMLFormElement>,
+    event: FormEvent<HTMLFormElement>,
   ) => {
     event.preventDefault();
 
+    if (saving) {
+      return;
+    }
+
+    clearMessages();
+
+    const produtoId = editingId;
+    const expectedStockQuantity = originalStockQuantity;
+
+    if (
+      produtoId !== null &&
+      expectedStockQuantity === null
+    ) {
+      setError(
+        'Não foi possível identificar o estoque original. Reabra a edição do produto.',
+      );
+      return;
+    }
+
     try {
-      clearMessages();
       setSaving(true);
 
-      const imageData =
-        await getImageData();
+      const imageData = await getImageData();
 
-      const payload =
-        createProdutoPayload(
-          formData,
-          imageData,
-        );
+      const payload = createProdutoPayload(
+        formData,
+        imageData,
+      );
 
-      if (editingId !== null) {
-        await updateProdutoApi(
-          editingId,
-          payload,
-        );
+      if (produtoId !== null) {
+        if (expectedStockQuantity === null) {
+          throw new Error('Estoque original não informado.');
+        }
 
-        setSuccess(
-          'Produto atualizado com sucesso.',
-        );
+        await updateProdutoApi(produtoId, {
+          ...payload,
+          expectedStockQuantity,
+        });
 
+        setSuccess('Produto atualizado com sucesso.');
         resetForm();
 
         await onUpdated();
-
         return;
       }
 
-      await createProdutoApi(
-        payload,
-      );
+      await createProdutoApi(payload);
 
-      setSuccess(
-        'Produto criado com sucesso.',
-      );
-
+      setSuccess('Produto criado com sucesso.');
       resetForm();
 
       await onCreated();
@@ -212,19 +189,11 @@ export function useProdutoForm({
       const axiosError =
         requestError as AxiosError<ApiErrorResponse>;
 
-      console.error(
-        'Erro ao salvar produto:',
-        {
-          statusCode:
-            axiosError.response
-              ?.status,
-          data:
-            axiosError.response
-              ?.data,
-          message:
-            axiosError.message,
-        },
-      );
+      console.error('Erro ao salvar produto:', {
+        statusCode: axiosError.response?.status,
+        data: axiosError.response?.data,
+        message: axiosError.message,
+      });
 
       setError(
         getErrorMessage(
@@ -237,78 +206,51 @@ export function useProdutoForm({
     }
   };
 
-  const handleEdit = (
-    produto: Produto,
-  ) => {
+  const handleEdit = (produto: Produto) => {
     clearMessages();
 
-    setEditingId(
-      produto.id,
-    );
+    setEditingId(produto.id);
+
+    // Mantém o estoque que acompanhava os dados abertos para edição.
+    // Alterar o campo do formulário não modifica este valor.
+    setOriginalStockQuantity(produto.stockQuantity);
 
     setSelectedImage(null);
 
     setFormData({
-      name:
-        produto.name,
-
-      description:
-        produto.description || '',
-
-      price: String(
-        produto.price,
-      ),
-
-      stockQuantity: String(
-        produto.stockQuantity,
-      ),
+      name: produto.name,
+      description: produto.description || '',
+      price: String(produto.price),
+      stockQuantity: String(produto.stockQuantity),
 
       weightKg:
         produto.weightKg !== null &&
         produto.weightKg !== undefined
-          ? String(
-              produto.weightKg,
-            )
+          ? String(produto.weightKg)
           : '',
 
       heightCm:
         produto.heightCm !== null &&
         produto.heightCm !== undefined
-          ? String(
-              produto.heightCm,
-            )
+          ? String(produto.heightCm)
           : '',
 
       widthCm:
         produto.widthCm !== null &&
         produto.widthCm !== undefined
-          ? String(
-              produto.widthCm,
-            )
+          ? String(produto.widthCm)
           : '',
 
       lengthCm:
         produto.lengthCm !== null &&
         produto.lengthCm !== undefined
-          ? String(
-              produto.lengthCm,
-            )
+          ? String(produto.lengthCm)
           : '',
 
-      categoryId: String(
-        produto.category?.id ||
-          '',
-      ),
-
-      imageUrl:
-        produto.imageUrl || '',
-
-      imagePublicId:
-        produto.imagePublicId ||
-        '',
-
-      active:
-        produto.active,
+      categoryId: String(produto.category?.id || ''),
+      imageUrl: produto.imageUrl || '',
+      imagePublicId: produto.imagePublicId || '',
+      active: produto.active,
     });
 
     window.scrollTo({

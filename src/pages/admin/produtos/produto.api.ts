@@ -35,28 +35,25 @@ interface ProdutoPayload {
   active: boolean;
 }
 
+interface UpdateProdutoPayload extends ProdutoPayload {
+  expectedStockQuantity: number;
+}
+
 export async function fetchProdutosApi(
   params: FetchProdutosParams,
 ) {
-  const response =
-    await api.get<ProdutosResponse>(
-      '/produtos/admin',
-      {
-        params,
-      },
-    );
+  const response = await api.get<ProdutosResponse>(
+    '/produtos/admin',
+    { params },
+  );
 
   return response.data;
 }
 
 export async function fetchCategoriasApi() {
-  const response =
-    await api.get<
-      | Categoria[]
-      | {
-          content: Categoria[];
-        }
-    >('/categorias');
+  const response = await api.get<
+    Categoria[] | { content: Categoria[] }
+  >('/categorias');
 
   const data = response.data;
 
@@ -65,32 +62,21 @@ export async function fetchCategoriasApi() {
     data !== null &&
     'content' in data
   ) {
-    return Array.isArray(data.content)
-      ? data.content
-      : [];
+    return Array.isArray(data.content) ? data.content : [];
   }
 
-  return Array.isArray(data)
-    ? data
-    : [];
+  return Array.isArray(data) ? data : [];
 }
 
-export async function uploadProdutoImageApi(
-  file: File,
-) {
-  const uploadData =
-    new FormData();
+export async function uploadProdutoImageApi(file: File) {
+  const uploadData = new FormData();
 
-  uploadData.append(
-    'file',
-    file,
+  uploadData.append('file', file);
+
+  const response = await api.post<ImageUploadResponse>(
+    '/produtos/upload-image',
+    uploadData,
   );
-
-  const response =
-    await api.post<ImageUploadResponse>(
-      '/produtos/upload-image',
-      uploadData,
-    );
 
   return response.data;
 }
@@ -98,35 +84,24 @@ export async function uploadProdutoImageApi(
 export async function createProdutoApi(
   payload: ProdutoPayload,
 ) {
-  await api.post(
-    '/produtos',
-    payload,
-  );
+  await api.post('/produtos', payload);
 }
 
 export async function updateProdutoApi(
   produtoId: number,
-  payload: ProdutoPayload,
+  payload: UpdateProdutoPayload,
 ) {
-  await api.put(
-    `/produtos/${produtoId}`,
-    payload,
-  );
+  await api.put(`/produtos/${produtoId}`, payload);
 }
 
-export async function deleteProdutoApi(
-  produtoId: number,
-) {
-  await api.delete(
-    `/produtos/${produtoId}`,
-  );
+export async function deleteProdutoApi(produtoId: number) {
+  await api.delete(`/produtos/${produtoId}`);
 }
 
 function optionalNumber(
   value: string,
 ): number | undefined {
-  const normalized =
-    value.trim();
+  const normalized = value.trim();
 
   if (!normalized) {
     return undefined;
@@ -143,52 +118,21 @@ export function createProdutoPayload(
   },
 ): ProdutoPayload {
   return {
-    name:
-      formData.name.trim(),
+    name: formData.name.trim(),
+    description: formData.description.trim() || undefined,
+    price: Number(formData.price),
+    stockQuantity: Number(formData.stockQuantity),
 
-    description:
-      formData.description.trim() ||
-      undefined,
+    weightKg: optionalNumber(formData.weightKg),
+    heightCm: optionalNumber(formData.heightCm),
+    widthCm: optionalNumber(formData.widthCm),
+    lengthCm: optionalNumber(formData.lengthCm),
 
-    price: Number(
-      formData.price,
-    ),
+    categoryId: Number(formData.categoryId),
 
-    stockQuantity: Number(
-      formData.stockQuantity,
-    ),
+    imageUrl: imageData.imageUrl,
+    imagePublicId: imageData.imagePublicId,
 
-    weightKg:
-      optionalNumber(
-        formData.weightKg,
-      ),
-
-    heightCm:
-      optionalNumber(
-        formData.heightCm,
-      ),
-
-    widthCm:
-      optionalNumber(
-        formData.widthCm,
-      ),
-
-    lengthCm:
-      optionalNumber(
-        formData.lengthCm,
-      ),
-
-    categoryId: Number(
-      formData.categoryId,
-    ),
-
-    imageUrl:
-      imageData.imageUrl,
-
-    imagePublicId:
-      imageData.imagePublicId,
-
-    active:
-      formData.active,
+    active: formData.active,
   };
 }
