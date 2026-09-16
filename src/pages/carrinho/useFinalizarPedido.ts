@@ -40,6 +40,14 @@ interface UseFinalizarPedidoOptions {
     | string
     | null;
 
+  quotedShippingPrice?:
+    | number
+    | null;
+
+  quotedZipCode?:
+    | string
+    | null;
+
   onOrderCreated: () => void;
 }
 
@@ -61,9 +69,17 @@ function getApiErrorMessage(
   );
 }
 
+function normalizeZipCode(
+  value: string,
+) {
+  return value.replace(/\D/g, '');
+}
+
 export function useFinalizarPedido({
   items,
   shippingServiceId = null,
+  quotedShippingPrice = null,
+  quotedZipCode = null,
   onOrderCreated,
 }: UseFinalizarPedidoOptions) {
   const navigate = useNavigate();
@@ -106,9 +122,29 @@ export function useFinalizarPedido({
         return;
       }
 
-      if (!shippingServiceId) {
+      if (
+        !shippingServiceId ||
+        quotedShippingPrice === null ||
+        !quotedZipCode
+      ) {
         setError(
           'Calcule o frete e selecione uma opção de entrega antes de finalizar o pedido.',
+        );
+
+        return;
+      }
+
+      const normalizedZipCode =
+        normalizeZipCode(
+          quotedZipCode,
+        );
+
+      if (
+        normalizedZipCode.length !==
+        8
+      ) {
+        setError(
+          'Calcule o frete novamente antes de finalizar o pedido.',
         );
 
         return;
@@ -135,6 +171,11 @@ export function useFinalizarPedido({
               ),
 
               shippingServiceId,
+
+              quotedShippingPrice,
+
+              quotedZipCode:
+                normalizedZipCode,
             },
           );
 

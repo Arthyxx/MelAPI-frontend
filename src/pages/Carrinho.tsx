@@ -44,6 +44,15 @@ export function Carrinho() {
         frete.selectedOption
           ?.serviceId,
 
+      quotedShippingPrice:
+        frete.selectedOption
+          ?.price,
+
+      quotedZipCode:
+        frete.selectedOption
+          ? frete.zipCode
+          : null,
+
       onOrderCreated:
         carrinho.clearItemsAfterOrder,
     });
