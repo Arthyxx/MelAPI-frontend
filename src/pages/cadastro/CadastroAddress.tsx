@@ -9,15 +9,23 @@ import type {
 
 interface CadastroAddressProps {
   formData: CadastroFormData;
+  loadingCep: boolean;
+  cepError: string;
+  cepMessage: string;
   onChange: (
     field: keyof CadastroFormData,
     value: string,
   ) => void;
+  onLookupCep: () => void;
 }
 
 export function CadastroAddress({
   formData,
+  loadingCep,
+  cepError,
+  cepMessage,
   onChange,
+  onLookupCep,
 }: CadastroAddressProps) {
   return (
     <section className="animate-fade-in-up delay-200">
@@ -48,21 +56,52 @@ export function CadastroAddress({
             CEP
           </label>
 
-          <input
-            type="text"
-            placeholder="60000000"
-            value={formData.zipCode}
-            onChange={(event) =>
-              onChange(
-                'zipCode',
-                event.target.value,
-              )
-            }
-            className={
-              cadastroInputClass
-            }
-            required
-          />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="postal-code"
+              placeholder="60000000"
+              value={formData.zipCode}
+              onChange={(event) =>
+                onChange(
+                  'zipCode',
+                  event.target.value,
+                )
+              }
+              className={`${cadastroInputClass} min-w-0 flex-1`}
+              required
+            />
+
+            <button
+              type="button"
+              onClick={onLookupCep}
+              disabled={loadingCep}
+              className="shrink-0 rounded-xl bg-amber-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-amber-600 dark:hover:bg-amber-500"
+            >
+              {loadingCep
+                ? 'Buscando...'
+                : 'Buscar CEP'}
+            </button>
+          </div>
+
+          {cepError && (
+            <p
+              className="mt-2 text-sm font-medium text-red-600 dark:text-red-400"
+              role="alert"
+            >
+              {cepError}
+            </p>
+          )}
+
+          {cepMessage && (
+            <p
+              className="mt-2 text-sm font-medium text-emerald-700 dark:text-emerald-400"
+              aria-live="polite"
+            >
+              {cepMessage}
+            </p>
+          )}
         </div>
 
         <div>
@@ -76,6 +115,7 @@ export function CadastroAddress({
 
           <input
             type="text"
+            autoComplete="address-level1"
             placeholder="CE"
             value={formData.state}
             onChange={(event) =>
@@ -87,6 +127,7 @@ export function CadastroAddress({
             className={
               cadastroInputClass
             }
+            disabled={loadingCep}
             required
           />
         </div>
@@ -102,6 +143,7 @@ export function CadastroAddress({
 
           <input
             type="text"
+            autoComplete="address-level2"
             placeholder="Fortaleza"
             value={formData.city}
             onChange={(event) =>
@@ -113,6 +155,7 @@ export function CadastroAddress({
             className={
               cadastroInputClass
             }
+            disabled={loadingCep}
             required
           />
         </div>
@@ -141,6 +184,7 @@ export function CadastroAddress({
             className={
               cadastroInputClass
             }
+            disabled={loadingCep}
             required
           />
         </div>
@@ -156,6 +200,7 @@ export function CadastroAddress({
 
           <input
             type="text"
+            autoComplete="street-address"
             placeholder="Rua das Flores"
             value={formData.street}
             onChange={(event) =>
@@ -167,6 +212,7 @@ export function CadastroAddress({
             className={
               cadastroInputClass
             }
+            disabled={loadingCep}
             required
           />
         </div>
@@ -195,6 +241,7 @@ export function CadastroAddress({
             className={
               cadastroInputClass
             }
+            disabled={loadingCep}
             required
           />
         </div>
@@ -223,6 +270,7 @@ export function CadastroAddress({
             className={
               cadastroInputClass
             }
+            disabled={loadingCep}
           />
         </div>
       </div>

@@ -26,7 +26,11 @@ export function Cadastro() {
     erro,
     sucesso,
     loading,
+    loadingCep,
+    cepError,
+    cepMessage,
     handleChange,
+    handleLookupCep,
     handleSubmit,
   } = useCadastroForm();
 
@@ -62,7 +66,13 @@ export function Cadastro() {
 
                 <CadastroAddress
                   formData={formData}
+                  loadingCep={loadingCep}
+                  cepError={cepError}
+                  cepMessage={cepMessage}
                   onChange={handleChange}
+                  onLookupCep={
+                    handleLookupCep
+                  }
                 />
 
                 <CadastroActions

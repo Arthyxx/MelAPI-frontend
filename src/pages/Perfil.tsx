@@ -1,27 +1,11 @@
-import {
-  PerfilActions,
-} from './perfil/PerfilActions';
-import {
-  PerfilAddress,
-} from './perfil/PerfilAddress';
-import {
-  PerfilHeader,
-} from './perfil/PerfilHeader';
-import {
-  PerfilLoading,
-} from './perfil/PerfilLoading';
-import {
-  PerfilMessages,
-} from './perfil/PerfilMessages';
-import {
-  PerfilPersonalData,
-} from './perfil/PerfilPersonalData';
-import {
-  PerfilSecurity,
-} from './perfil/PerfilSecurity';
-import {
-  usePerfilForm,
-} from './perfil/usePerfilForm';
+import { PerfilActions } from './perfil/PerfilActions';
+import { PerfilAddress } from './perfil/PerfilAddress';
+import { PerfilHeader } from './perfil/PerfilHeader';
+import { PerfilLoading } from './perfil/PerfilLoading';
+import { PerfilMessages } from './perfil/PerfilMessages';
+import { PerfilPersonalData } from './perfil/PerfilPersonalData';
+import { PerfilSecurity } from './perfil/PerfilSecurity';
+import { usePerfilForm } from './perfil/usePerfilForm';
 
 export function Perfil() {
   const {
@@ -30,7 +14,11 @@ export function Perfil() {
     saving,
     error,
     success,
+    loadingCep,
+    cepError,
+    cepMessage,
     handleChange,
+    handleLookupCep,
     handleSubmit,
   } = usePerfilForm();
 
@@ -62,8 +50,7 @@ export function Perfil() {
                 </h2>
 
                 <p className="mt-2 text-sm text-amber-50">
-                  Esses dados ajudam no contato e na
-                  entrega dos produtos.
+                  Esses dados ajudam no contato e na entrega dos produtos.
                 </p>
               </div>
 
@@ -81,23 +68,31 @@ export function Perfil() {
               success={success}
             />
 
-            <form
-              onSubmit={handleSubmit}
-              className="space-y-8"
-            >
-              <PerfilPersonalData
-                formData={formData}
-                onChange={handleChange}
-              />
+            <form onSubmit={handleSubmit}>
+              <fieldset
+                disabled={saving}
+                className="min-w-0 space-y-8"
+              >
+                <legend className="sr-only">
+                  Editar dados do perfil
+                </legend>
 
-              <PerfilAddress
-                formData={formData}
-                onChange={handleChange}
-              />
+                <PerfilPersonalData
+                  formData={formData}
+                  onChange={handleChange}
+                />
 
-              <PerfilActions
-                saving={saving}
-              />
+                <PerfilAddress
+                  formData={formData}
+                  onChange={handleChange}
+                  loadingCep={loadingCep}
+                  cepError={cepError}
+                  cepMessage={cepMessage}
+                  onLookupCep={handleLookupCep}
+                />
+
+                <PerfilActions saving={saving} />
+              </fieldset>
             </form>
           </div>
         </section>
