@@ -1,22 +1,10 @@
-import type {
-  AxiosError,
-} from 'axios';
-import {
-  useState,
-} from 'react';
-import {
-  useNavigate,
-} from 'react-router-dom';
+import type { AxiosError } from "axios";
+import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-import {
-  useAuth,
-} from '../../contexts/useAuth';
-import {
-  api,
-} from '../../services/api';
-import type {
-  CartItem,
-} from '../../utils/cart';
+import { useAuth } from "../../contexts/useAuth";
+import { api } from "../../services/api";
+import type { CartItem } from "../../utils/cart";
 
 interface ApiErrorResponse {
   message?: string | string[];
@@ -36,43 +24,143 @@ interface CheckoutResponse {
 interface UseFinalizarPedidoOptions {
   items: CartItem[];
 
-  shippingServiceId?:
-    | string
-    | null;
+  shippingServiceId?: string | null;
 
-  quotedShippingPrice?:
-    | number
-    | null;
+  quotedShippingPrice?: number | null;
 
-  quotedZipCode?:
-    | string
-    | null;
+  quotedZipCode?: string | null;
 
   onOrderCreated: () => void;
 }
+
+interface IdempotencyAttempt {
+  key: string;
+  fingerprint: string;
+}
+
+interface PedidoPayload {
+  items: Array<{
+    produtoId: number;
+    quantity: number;
+  }>;
+
+  shippingServiceId: string;
+  quotedShippingPrice: number;
+  quotedZipCode: string;
+}
+
+const IDEMPOTENCY_STORAGE_KEY =
+  "mel:pedido:idempotency-attempt";
 
 function getApiErrorMessage(
   error: AxiosError<ApiErrorResponse>,
   fallbackMessage: string,
 ) {
-  const apiMessage =
-    error.response?.data?.message;
+  const apiMessage = error.response?.data?.message;
 
   if (Array.isArray(apiMessage)) {
-    return apiMessage.join(' ');
+    return apiMessage.join(" ");
   }
 
+  return apiMessage || error.response?.data?.error || fallbackMessage;
+}
+
+function normalizeZipCode(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function createIdempotencyKey() {
+  return crypto.randomUUID();
+}
+
+function createPedidoFingerprint(payload: PedidoPayload) {
+  return JSON.stringify({
+    items: [...payload.items]
+      .sort(
+        (firstItem, secondItem) =>
+          firstItem.produtoId - secondItem.produtoId,
+      )
+      .map((item) => ({
+        produtoId: item.produtoId,
+        quantity: item.quantity,
+      })),
+
+    shippingServiceId: payload.shippingServiceId,
+
+    quotedShippingPrice: payload.quotedShippingPrice,
+
+    quotedZipCode: payload.quotedZipCode,
+  });
+}
+
+function isIdempotencyAttempt(
+  value: unknown,
+): value is IdempotencyAttempt {
+  if (
+    typeof value !== "object" ||
+    value === null
+  ) {
+    return false;
+  }
+
+  const candidate =
+    value as Partial<IdempotencyAttempt>;
+
   return (
-    apiMessage ||
-    error.response?.data?.error ||
-    fallbackMessage
+    typeof candidate.key === "string" &&
+    typeof candidate.fingerprint === "string"
   );
 }
 
-function normalizeZipCode(
-  value: string,
+function loadIdempotencyAttempt() {
+  try {
+    const storedValue =
+      sessionStorage.getItem(
+        IDEMPOTENCY_STORAGE_KEY,
+      );
+
+    if (!storedValue) {
+      return null;
+    }
+
+    const parsedValue: unknown =
+      JSON.parse(storedValue);
+
+    if (
+      !isIdempotencyAttempt(
+        parsedValue,
+      )
+    ) {
+      sessionStorage.removeItem(
+        IDEMPOTENCY_STORAGE_KEY,
+      );
+
+      return null;
+    }
+
+    return parsedValue;
+  } catch {
+    sessionStorage.removeItem(
+      IDEMPOTENCY_STORAGE_KEY,
+    );
+
+    return null;
+  }
+}
+
+function saveIdempotencyAttempt(
+  attempt: IdempotencyAttempt,
 ) {
-  return value.replace(/\D/g, '');
+  sessionStorage.setItem(
+    IDEMPOTENCY_STORAGE_KEY,
+    JSON.stringify(attempt),
+  );
+}
+
+function clearIdempotencyAttempt() {
+  sessionStorage.removeItem(
+    IDEMPOTENCY_STORAGE_KEY,
+  );
 }
 
 export function useFinalizarPedido({
@@ -84,22 +172,25 @@ export function useFinalizarPedido({
 }: UseFinalizarPedidoOptions) {
   const navigate = useNavigate();
 
-  const {
-    isAuthenticated,
-  } = useAuth();
+  const { isAuthenticated } = useAuth();
+
+  const idempotencyAttemptRef =
+    useRef<IdempotencyAttempt | null>(
+      loadIdempotencyAttempt(),
+    );
 
   const [loading, setLoading] =
     useState(false);
 
   const [error, setError] =
-    useState('');
+    useState("");
 
   const [success, setSuccess] =
-    useState('');
+    useState("");
 
   const clearMessages = () => {
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
   };
 
   const finalizarPedido =
@@ -107,7 +198,7 @@ export function useFinalizarPedido({
       clearMessages();
 
       if (!isAuthenticated) {
-        navigate('/login', {
+        navigate("/login", {
           replace: true,
         });
 
@@ -116,7 +207,7 @@ export function useFinalizarPedido({
 
       if (items.length === 0) {
         setError(
-          'O carrinho está vazio.',
+          "O carrinho está vazio.",
         );
 
         return;
@@ -124,11 +215,12 @@ export function useFinalizarPedido({
 
       if (
         !shippingServiceId ||
-        quotedShippingPrice === null ||
+        quotedShippingPrice ===
+          null ||
         !quotedZipCode
       ) {
         setError(
-          'Calcule o frete e selecione uma opção de entrega antes de finalizar o pedido.',
+          "Calcule o frete e selecione uma opção de entrega antes de finalizar o pedido.",
         );
 
         return;
@@ -144,43 +236,86 @@ export function useFinalizarPedido({
         8
       ) {
         setError(
-          'Calcule o frete novamente antes de finalizar o pedido.',
+          "Calcule o frete novamente antes de finalizar o pedido.",
         );
 
         return;
       }
 
+      const pedidoPayload: PedidoPayload =
+        {
+          items: items.map(
+            (item) => ({
+              produtoId:
+                item.id,
+              quantity:
+                item.quantity,
+            }),
+          ),
+
+          shippingServiceId,
+
+          quotedShippingPrice,
+
+          quotedZipCode:
+            normalizedZipCode,
+        };
+
+      const fingerprint =
+        createPedidoFingerprint(
+          pedidoPayload,
+        );
+
+      let idempotencyAttempt =
+        idempotencyAttemptRef.current;
+
+      if (
+        !idempotencyAttempt ||
+        idempotencyAttempt.fingerprint !==
+          fingerprint
+      ) {
+        idempotencyAttempt = {
+          key: createIdempotencyKey(),
+          fingerprint,
+        };
+
+        idempotencyAttemptRef.current =
+          idempotencyAttempt;
+
+        saveIdempotencyAttempt(
+          idempotencyAttempt,
+        );
+      }
+
+      const idempotencyKey =
+        idempotencyAttempt.key;
+
       setLoading(true);
 
-      let pedidoId: number | null =
-        null;
+      let pedidoId:
+        | number
+        | null = null;
 
       try {
         const pedidoResponse =
           await api.post<PedidoCriadoResponse>(
-            '/pedidos',
+            "/pedidos",
+            pedidoPayload,
             {
-              items: items.map(
-                (item) => ({
-                  produtoId:
-                    item.id,
-
-                  quantity:
-                    item.quantity,
-                }),
-              ),
-
-              shippingServiceId,
-
-              quotedShippingPrice,
-
-              quotedZipCode:
-                normalizedZipCode,
+              headers: {
+                "Idempotency-Key":
+                  idempotencyKey,
+              },
             },
           );
 
         pedidoId =
           pedidoResponse.data.id;
+
+        idempotencyAttemptRef.current =
+          null;
+
+        clearIdempotencyAttempt();
 
         onOrderCreated();
 
@@ -199,7 +334,7 @@ export function useFinalizarPedido({
 
         if (!checkoutUrl) {
           throw new Error(
-            'URL de pagamento não retornada.',
+            "URL de pagamento não retornada.",
           );
         }
 
@@ -207,11 +342,9 @@ export function useFinalizarPedido({
           checkoutUrl,
         );
       } catch (requestError) {
-        if (
-          pedidoId !== null
-        ) {
+        if (pedidoId !== null) {
           console.error(
-            'Pedido criado, mas não foi possível iniciar o pagamento:',
+            "Pedido criado, mas não foi possível iniciar o pagamento:",
             requestError,
           );
 
@@ -219,7 +352,7 @@ export function useFinalizarPedido({
             `O pedido #${pedidoId} foi criado, mas não foi possível abrir o pagamento. Acesse “Meus pedidos” para tentar pagar novamente.`,
           );
 
-          setSuccess('');
+          setSuccess("");
 
           window.setTimeout(() => {
             navigate(
@@ -237,7 +370,7 @@ export function useFinalizarPedido({
           requestError as AxiosError<ApiErrorResponse>;
 
         console.error(
-          'Erro ao finalizar pedido:',
+          "Erro ao finalizar pedido:",
           {
             statusCode:
               axiosError.response
@@ -255,7 +388,7 @@ export function useFinalizarPedido({
         setError(
           getApiErrorMessage(
             axiosError,
-            'Erro ao finalizar pedido. Verifique o estoque dos produtos e tente novamente.',
+            "Erro ao finalizar pedido. Verifique o estoque dos produtos e tente novamente.",
           ),
         );
       } finally {
@@ -266,7 +399,7 @@ export function useFinalizarPedido({
   const setSuccessMessage = (
     message: string,
   ) => {
-    setError('');
+    setError("");
     setSuccess(message);
   };
 
