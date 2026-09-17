@@ -1,25 +1,17 @@
-import { Link } from 'react-router-dom';
+import { Link } from "react-router-dom";
 
-import type {
-  DashboardSummary,
-} from './dashboard.types';
+import type { DashboardSummary } from "./dashboard.types";
 
 interface DashboardAttentionProps {
   summary: DashboardSummary;
 }
 
-export function DashboardAttention({
-  summary,
-}: DashboardAttentionProps) {
-  const hasPendingOrders =
-    summary.pedidos.pendentes > 0;
+export function DashboardAttention({ summary }: DashboardAttentionProps) {
+  const hasPendingOrders = summary.pedidos.pendentes > 0;
 
-  const hasOutOfStockProducts =
-    summary.produtos.semEstoque > 0;
+  const hasOutOfStockProducts = summary.produtos.semEstoque > 0;
 
-  const needsAttention =
-    hasPendingOrders ||
-    hasOutOfStockProducts;
+  const needsAttention = hasPendingOrders || hasOutOfStockProducts;
 
   return (
     <section>
@@ -29,8 +21,7 @@ export function DashboardAttention({
         </h2>
 
         <p className="mt-1 text-sm text-gray-500">
-          Situações que podem exigir
-          alguma ação.
+          Situações que merecem acompanhamento.
         </p>
       </div>
 
@@ -42,13 +33,10 @@ export function DashboardAttention({
             </div>
 
             <div>
-              <h3 className="font-black text-green-900">
-                Tudo certo por aqui
-              </h3>
+              <h3 className="font-black text-green-900">Tudo certo por aqui</h3>
 
               <p className="mt-1 text-sm leading-relaxed text-green-700">
-                Não há pedidos pendentes
-                nem produtos sem estoque
+                Não há pedidos aguardando pagamento nem produtos sem estoque
                 neste momento.
               </p>
             </div>
@@ -68,22 +56,17 @@ export function DashboardAttention({
 
                 <div className="min-w-0 flex-1">
                   <p className="text-2xl font-black text-yellow-800">
-                    {
-                      summary.pedidos
-                        .pendentes
-                    }
+                    {summary.pedidos.pendentes}
                   </p>
 
                   <h3 className="mt-1 font-black text-yellow-900">
-                    {summary.pedidos
-                      .pendentes === 1
-                      ? 'Pedido pendente'
-                      : 'Pedidos pendentes'}
+                    {summary.pedidos.pendentes === 1
+                      ? "Pedido aguardando pagamento"
+                      : "Pedidos aguardando pagamento"}
                   </h3>
 
                   <p className="mt-1 text-sm text-yellow-700">
-                    Há pedidos esperando
-                    atendimento.
+                    O pagamento ainda não foi confirmado pelo Mercado Pago.
                   </p>
 
                   <p className="mt-3 text-sm font-black text-yellow-900 group-hover:underline">
@@ -106,22 +89,17 @@ export function DashboardAttention({
 
                 <div className="min-w-0 flex-1">
                   <p className="text-2xl font-black text-red-700">
-                    {
-                      summary.produtos
-                        .semEstoque
-                    }
+                    {summary.produtos.semEstoque}
                   </p>
 
                   <h3 className="mt-1 font-black text-red-900">
-                    {summary.produtos
-                      .semEstoque === 1
-                      ? 'Produto sem estoque'
-                      : 'Produtos sem estoque'}
+                    {summary.produtos.semEstoque === 1
+                      ? "Produto sem estoque"
+                      : "Produtos sem estoque"}
                   </h3>
 
                   <p className="mt-1 text-sm text-red-700">
-                    Atualize o estoque
-                    para voltar a vender.
+                    Atualize o estoque para voltar a vender.
                   </p>
 
                   <p className="mt-3 text-sm font-black text-red-900 group-hover:underline">
