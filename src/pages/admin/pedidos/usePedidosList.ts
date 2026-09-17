@@ -103,6 +103,8 @@ export function usePedidosList() {
 
     return () => {
       window.clearTimeout(timeoutId);
+
+      latestRequestIdRef.current += 1;
     };
   }, [fetchPedidos, search]);
 
