@@ -1,57 +1,43 @@
-import type { AxiosError } from 'axios';
-import {
-  useState,
-  type FormEvent,
-} from 'react';
+import type { AxiosError } from "axios";
+import { useRef, useState, type FormEvent } from "react";
 
 import {
   createClienteApi,
   createClientePayload,
   createUpdateClientePayload,
   updateClienteApi,
-} from './cliente.api';
+} from "./cliente.api";
 
-import {
-  initialFormData,
-} from './cliente.constants';
+import { initialFormData } from "./cliente.constants";
 
 import type {
   ApiErrorResponse,
   Cliente,
   ClienteFormData,
-} from './cliente.types';
+} from "./cliente.types";
 
-import {
-  getErrorMessage,
-} from './cliente.utils';
+import { getErrorMessage } from "./cliente.utils";
 
 interface UseClienteFormOptions {
   onSaved: () => Promise<void>;
 }
 
-export function useClienteForm({
-  onSaved,
-}: UseClienteFormOptions) {
-  const [editingId, setEditingId] =
-    useState<number | null>(null);
+export function useClienteForm({ onSaved }: UseClienteFormOptions) {
+  const [editingId, setEditingId] = useState<number | null>(null);
 
-  const [formData, setFormData] =
-    useState<ClienteFormData>(
-      initialFormData,
-    );
+  const [formData, setFormData] = useState<ClienteFormData>(initialFormData);
 
-  const [saving, setSaving] =
-    useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const [error, setError] =
-    useState('');
+  const [error, setError] = useState("");
 
-  const [success, setSuccess] =
-    useState('');
+  const [success, setSuccess] = useState("");
+
+  const submittingRef = useRef(false);
 
   const clearMessages = () => {
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
   };
 
   const resetForm = () => {
@@ -72,74 +58,49 @@ export function useClienteForm({
     );
   };
 
-  const handleSubmit = async (
-    event:
-      FormEvent<HTMLFormElement>,
-  ) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    if (submittingRef.current) {
+      return;
+    }
+
+    submittingRef.current = true;
 
     try {
       clearMessages();
       setSaving(true);
 
       if (editingId !== null) {
-        await updateClienteApi(
-          editingId,
-          createUpdateClientePayload(
-            formData,
-          ),
-        );
+        await updateClienteApi(editingId, createUpdateClientePayload(formData));
 
-        setSuccess(
-          'Cliente atualizado com sucesso.',
-        );
+        setSuccess("Cliente atualizado com sucesso.");
       } else {
-        await createClienteApi(
-          createClientePayload(
-            formData,
-          ),
-        );
+        await createClienteApi(createClientePayload(formData));
 
-        setSuccess(
-          'Cliente criado com sucesso.',
-        );
+        setSuccess("Cliente criado com sucesso.");
       }
 
       resetForm();
 
       await onSaved();
     } catch (requestError) {
-      const axiosError =
-        requestError as AxiosError<ApiErrorResponse>;
+      const axiosError = requestError as AxiosError<ApiErrorResponse>;
 
-      console.error(
-        'Erro ao salvar cliente:',
-        {
-          statusCode:
-            axiosError.response
-              ?.status,
-          data:
-            axiosError.response
-              ?.data,
-          message:
-            axiosError.message,
-        },
-      );
+      console.error("Erro ao salvar cliente:", {
+        statusCode: axiosError.response?.status,
+        data: axiosError.response?.data,
+        message: axiosError.message,
+      });
 
-      setError(
-        getErrorMessage(
-          axiosError,
-          'Erro ao salvar cliente.',
-        ),
-      );
+      setError(getErrorMessage(axiosError, "Erro ao salvar cliente."));
     } finally {
+      submittingRef.current = false;
       setSaving(false);
     }
   };
 
-  const handleEdit = (
-    cliente: Cliente,
-  ) => {
+  const handleEdit = (cliente: Cliente) => {
     clearMessages();
 
     setEditingId(cliente.id);
@@ -147,14 +108,14 @@ export function useClienteForm({
     setFormData({
       name: cliente.name,
       email: cliente.email,
-      password: '',
+      password: "",
       role: cliente.role,
       active: cliente.active,
     });
 
     window.scrollTo({
       top: 0,
-      behavior: 'smooth',
+      behavior: "smooth",
     });
   };
 
