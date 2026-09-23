@@ -1,21 +1,11 @@
-import type { AxiosError } from 'axios';
-import {
-  useMemo,
-  useState,
-} from 'react';
+import type { AxiosError } from "axios";
+import { useMemo, useRef, useState } from "react";
 
-import {
-  deleteClienteApi,
-} from './cliente.api';
+import { deleteClienteApi } from "./cliente.api";
 
-import type {
-  ApiErrorResponse,
-  Cliente,
-} from './cliente.types';
+import type { ApiErrorResponse, Cliente } from "./cliente.types";
 
-import {
-  getErrorMessage,
-} from './cliente.utils';
+import { getErrorMessage } from "./cliente.utils";
 
 interface UseClienteDeleteOptions {
   clientes: Cliente[];
@@ -26,98 +16,73 @@ export function useClienteDelete({
   clientes,
   onDeleted,
 }: UseClienteDeleteOptions) {
-  const [deleteId, setDeleteId] =
-    useState<number | null>(null);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
-  const [deleting, setDeleting] =
-    useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-  const [error, setError] =
-    useState('');
+  const [error, setError] = useState("");
 
-  const [success, setSuccess] =
-    useState('');
+  const [success, setSuccess] = useState("");
 
-  const clienteParaExcluir =
-    useMemo(() => {
-      if (deleteId === null) {
-        return undefined;
-      }
+  const deletingRef = useRef(false);
 
-      return clientes.find(
-        (cliente) =>
-          cliente.id === deleteId,
-      );
-    }, [
-      clientes,
-      deleteId,
-    ]);
+  const clienteParaExcluir = useMemo(() => {
+    if (deleteId === null) {
+      return undefined;
+    }
+
+    return clientes.find((cliente) => cliente.id === deleteId);
+  }, [clientes, deleteId]);
 
   const clearMessages = () => {
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
   };
 
-  const handleDelete = (
-    clienteId: number,
-  ) => {
+  const handleDelete = (clienteId: number) => {
     clearMessages();
 
     setDeleteId(clienteId);
   };
 
-  const handleConfirmDelete =
-    async () => {
-      if (deleteId === null) {
-        return;
-      }
+  const handleConfirmDelete = async () => {
+    if (deleteId === null || deletingRef.current) {
+      return;
+    }
 
-      try {
-        clearMessages();
-        setDeleting(true);
+    deletingRef.current = true;
 
-        await deleteClienteApi(
-          deleteId,
-        );
+    try {
+      clearMessages();
+      setDeleting(true);
 
-        setDeleteId(null);
+      await deleteClienteApi(deleteId);
 
-        setSuccess(
-          'Operação concluída. O cliente foi excluído ou desativado para preservar o histórico.',
-        );
+      setDeleteId(null);
 
-        await onDeleted();
-      } catch (requestError) {
-        const axiosError =
-          requestError as AxiosError<ApiErrorResponse>;
+      setSuccess(
+        "Operação concluída. O cliente foi excluído ou desativado para preservar o histórico.",
+      );
 
-        console.error(
-          'Erro ao excluir cliente:',
-          {
-            statusCode:
-              axiosError.response
-                ?.status,
-            data:
-              axiosError.response
-                ?.data,
-            message:
-              axiosError.message,
-          },
-        );
+      await onDeleted();
+    } catch (requestError) {
+      const axiosError = requestError as AxiosError<ApiErrorResponse>;
 
-        setError(
-          getErrorMessage(
-            axiosError,
-            'Erro ao excluir cliente.',
-          ),
-        );
-      } finally {
-        setDeleting(false);
-      }
-    };
+      console.error("Erro ao excluir cliente:", {
+        statusCode: axiosError.response?.status,
+        data: axiosError.response?.data,
+        message: axiosError.message,
+      });
+
+      setError(getErrorMessage(axiosError, "Erro ao excluir cliente."));
+    } finally {
+      deletingRef.current = false;
+      setDeleting(false);
+    }
+  };
 
   const handleCancelDelete = () => {
-    if (deleting) {
+    if (deletingRef.current) {
       return;
     }
 
