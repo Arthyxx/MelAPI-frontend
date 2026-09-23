@@ -1,9 +1,4 @@
-import {
-  beforeEach,
-  describe,
-  expect,
-  it,
-} from 'vitest';
+import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   addToCart,
@@ -12,68 +7,54 @@ import {
   getCartItemsCount,
   getCartTotal,
   removeFromCart,
-} from './cart';
+} from "./cart";
 
 const produto = {
   id: 1,
-  name: 'Mel Silvestre',
+  name: "Mel Silvestre",
   price: 25,
   stockQuantity: 5,
-  imageUrl:
-    'https://exemplo.com/mel.jpg',
+  imageUrl: "https://exemplo.com/mel.jpg",
 };
 
-function toBase64Url(
-  value: string,
-): string {
+function toBase64Url(value: string): string {
   return btoa(value)
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/g, '');
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
 }
 
-function createTestToken(
-  sub: number,
-  email: string,
-): string {
+function createTestToken(sub: number, email: string): string {
   const header = {
-    alg: 'HS256',
-    typ: 'JWT',
+    alg: "HS256",
+    typ: "JWT",
   };
 
   const payload = {
     sub,
     email,
-    role: 'CLIENTE',
-    exp:
-      Math.floor(
-        Date.now() / 1000,
-      ) + 3600,
+    role: "CLIENTE",
+    exp: Math.floor(Date.now() / 1000) + 3600,
   };
 
   return [
-    toBase64Url(
-      JSON.stringify(header),
-    ),
-    toBase64Url(
-      JSON.stringify(payload),
-    ),
-    'assinatura-ficticia',
-  ].join('.');
+    toBase64Url(JSON.stringify(header)),
+    toBase64Url(JSON.stringify(payload)),
+    "assinatura-ficticia",
+  ].join(".");
 }
 
-describe('cart', () => {
+describe("cart", () => {
   beforeEach(() => {
     localStorage.clear();
   });
 
-  it('deve iniciar com o carrinho vazio', () => {
+  it("deve iniciar com o carrinho vazio", () => {
     expect(getCart()).toEqual([]);
   });
 
-  it('deve adicionar um produto ao carrinho', () => {
-    const cart =
-      addToCart(produto);
+  it("deve adicionar um produto ao carrinho", () => {
+    const cart = addToCart(produto);
 
     expect(cart).toHaveLength(1);
 
@@ -83,59 +64,47 @@ describe('cart', () => {
     });
   });
 
-  it('deve aumentar a quantidade de um produto já existente', () => {
+  it("deve aumentar a quantidade de um produto já existente", () => {
     addToCart(produto);
 
-    const cart =
-      addToCart(produto);
+    const cart = addToCart(produto);
 
     expect(cart).toHaveLength(1);
 
-    expect(
-      cart[0].quantity,
-    ).toBe(2);
+    expect(cart[0].quantity).toBe(2);
   });
 
-  it('não deve ultrapassar o estoque disponível', () => {
+  it("não deve ultrapassar o estoque disponível", () => {
     const produtoComEstoqueUm = {
       ...produto,
       stockQuantity: 1,
     };
 
-    addToCart(
-      produtoComEstoqueUm,
-    );
+    addToCart(produtoComEstoqueUm);
 
-    expect(() =>
-      addToCart(
-        produtoComEstoqueUm,
-      ),
-    ).toThrow(
-      'Quantidade máxima em estoque atingida.',
+    expect(() => addToCart(produtoComEstoqueUm)).toThrow(
+      "Quantidade máxima em estoque atingida.",
     );
   });
 
-  it('não deve adicionar produto sem estoque', () => {
+  it("não deve adicionar produto sem estoque", () => {
     expect(() =>
       addToCart({
         ...produto,
         stockQuantity: 0,
       }),
-    ).toThrow(
-      'Produto sem estoque.',
-    );
+    ).toThrow("Produto sem estoque.");
   });
 
-  it('deve remover um produto do carrinho', () => {
+  it("deve remover um produto do carrinho", () => {
     addToCart(produto);
 
-    const cart =
-      removeFromCart(produto.id);
+    const cart = removeFromCart(produto.id);
 
     expect(cart).toEqual([]);
   });
 
-  it('deve limpar o carrinho', () => {
+  it("deve limpar o carrinho", () => {
     addToCart(produto);
 
     clearCart();
@@ -143,142 +112,237 @@ describe('cart', () => {
     expect(getCart()).toEqual([]);
   });
 
-  it('deve calcular o total e a quantidade de itens', () => {
+  it("deve calcular o total e a quantidade de itens", () => {
     addToCart(produto);
     addToCart(produto);
 
     addToCart({
       id: 2,
-      name: 'Própolis',
+      name: "Própolis",
       price: 10,
       stockQuantity: 3,
     });
 
-    expect(
-      getCartItemsCount(),
-    ).toBe(3);
+    expect(getCartItemsCount()).toBe(3);
 
-    expect(
-      getCartTotal(),
-    ).toBe(60);
+    expect(getCartTotal()).toBe(60);
   });
 
-  it('deve usar um carrinho separado para cada cliente autenticado', () => {
-    const tokenCliente1 =
-      createTestToken(
-        10,
-        'cliente1@email.com',
-      );
+  it("deve ignorar JSON inválido salvo no carrinho", () => {
+    localStorage.setItem("cart_visitante", "{json-invalido");
 
-    const tokenCliente2 =
-      createTestToken(
-        20,
-        'cliente2@email.com',
-      );
+    expect(getCart()).toEqual([]);
 
+    expect(getCartItemsCount()).toBe(0);
+
+    expect(getCartTotal()).toBe(0);
+  });
+
+  it("deve ignorar conteúdo salvo que não seja uma lista", () => {
     localStorage.setItem(
-      'token',
-      tokenCliente1,
+      "cart_visitante",
+      JSON.stringify({
+        id: 1,
+        name: "Mel Silvestre",
+      }),
     );
+
+    expect(getCart()).toEqual([]);
+  });
+
+  it("deve remover itens inválidos e manter itens válidos do localStorage", () => {
+    localStorage.setItem(
+      "cart_visitante",
+      JSON.stringify([
+        {
+          id: 1,
+          name: "Mel válido",
+          price: 25,
+          quantity: 2,
+          stockQuantity: 5,
+        },
+        {
+          id: 2,
+          name: "Quantidade negativa",
+          price: 20,
+          quantity: -1,
+          stockQuantity: 5,
+        },
+        {
+          id: 3,
+          name: "Preço negativo",
+          price: -10,
+          quantity: 1,
+          stockQuantity: 5,
+        },
+        {
+          id: 4,
+          name: "Sem estoque",
+          price: 15,
+          quantity: 1,
+          stockQuantity: 0,
+        },
+        {
+          id: 5,
+          name: "Quantidade acima do estoque",
+          price: 30,
+          quantity: 6,
+          stockQuantity: 5,
+        },
+      ]),
+    );
+
+    expect(getCart()).toEqual([
+      {
+        id: 1,
+        name: "Mel válido",
+        price: 25,
+        quantity: 2,
+        stockQuantity: 5,
+      },
+    ]);
+  });
+
+  it("deve rejeitar quantidades e estoque fracionários", () => {
+    localStorage.setItem(
+      "cart_visitante",
+      JSON.stringify([
+        {
+          id: 1,
+          name: "Quantidade fracionária",
+          price: 25,
+          quantity: 1.5,
+          stockQuantity: 5,
+        },
+        {
+          id: 2,
+          name: "Estoque fracionário",
+          price: 20,
+          quantity: 1,
+          stockQuantity: 2.5,
+        },
+      ]),
+    );
+
+    expect(getCart()).toEqual([]);
+  });
+
+  it("deve rejeitar produto com id inválido, nome vazio ou imagem inválida", () => {
+    localStorage.setItem(
+      "cart_visitante",
+      JSON.stringify([
+        {
+          id: 0,
+          name: "ID inválido",
+          price: 25,
+          quantity: 1,
+          stockQuantity: 5,
+        },
+        {
+          id: 2,
+          name: "   ",
+          price: 25,
+          quantity: 1,
+          stockQuantity: 5,
+        },
+        {
+          id: 3,
+          name: "Imagem inválida",
+          price: 25,
+          quantity: 1,
+          stockQuantity: 5,
+          imageUrl: 123,
+        },
+      ]),
+    );
+
+    expect(getCart()).toEqual([]);
+  });
+
+  it("não deve usar itens inválidos nos totais do carrinho", () => {
+    localStorage.setItem(
+      "cart_visitante",
+      JSON.stringify([
+        {
+          id: 1,
+          name: "Mel válido",
+          price: 25,
+          quantity: 2,
+          stockQuantity: 5,
+        },
+        {
+          id: 2,
+          name: "Item adulterado",
+          price: -1000,
+          quantity: 50,
+          stockQuantity: 1,
+        },
+      ]),
+    );
+
+    expect(getCartItemsCount()).toBe(2);
+
+    expect(getCartTotal()).toBe(50);
+  });
+
+  it("deve usar um carrinho separado para cada cliente autenticado", () => {
+    const tokenCliente1 = createTestToken(10, "cliente1@email.com");
+
+    const tokenCliente2 = createTestToken(20, "cliente2@email.com");
+
+    localStorage.setItem("token", tokenCliente1);
 
     addToCart(produto);
 
-    expect(
-      getCart(),
-    ).toHaveLength(1);
+    expect(getCart()).toHaveLength(1);
 
-    localStorage.setItem(
-      'token',
-      tokenCliente2,
-    );
+    localStorage.setItem("token", tokenCliente2);
 
-    expect(
-      getCart(),
-    ).toEqual([]);
+    expect(getCart()).toEqual([]);
 
     addToCart({
       id: 2,
-      name: 'Própolis',
+      name: "Própolis",
       price: 10,
       stockQuantity: 3,
     });
 
-    expect(
-      getCart()[0].id,
-    ).toBe(2);
+    expect(getCart()[0].id).toBe(2);
 
-    localStorage.setItem(
-      'token',
-      tokenCliente1,
-    );
+    localStorage.setItem("token", tokenCliente1);
 
-    expect(
-      getCart(),
-    ).toHaveLength(1);
+    expect(getCart()).toHaveLength(1);
 
-    expect(
-      getCart()[0].id,
-    ).toBe(1);
+    expect(getCart()[0].id).toBe(1);
   });
 
-  it('deve manter o carrinho do visitante separado do cliente autenticado', () => {
+  it("deve manter o carrinho do visitante separado do cliente autenticado", () => {
     addToCart(produto);
 
-    expect(
-      getCart(),
-    ).toHaveLength(1);
+    expect(getCart()).toHaveLength(1);
 
-    const token =
-      createTestToken(
-        30,
-        'cliente@email.com',
-      );
+    const token = createTestToken(30, "cliente@email.com");
 
-    localStorage.setItem(
-      'token',
-      token,
-    );
+    localStorage.setItem("token", token);
 
-    expect(
-      getCart(),
-    ).toEqual([]);
+    expect(getCart()).toEqual([]);
 
-    localStorage.removeItem(
-      'token',
-    );
+    localStorage.removeItem("token");
 
-    expect(
-      getCart(),
-    ).toHaveLength(1);
+    expect(getCart()).toHaveLength(1);
   });
 
-  it('deve salvar o carrinho autenticado usando o id do cliente', () => {
-    const token =
-      createTestToken(
-        42,
-        'cliente42@email.com',
-      );
+  it("deve salvar o carrinho autenticado usando o id do cliente", () => {
+    const token = createTestToken(42, "cliente42@email.com");
 
-    localStorage.setItem(
-      'token',
-      token,
-    );
+    localStorage.setItem("token", token);
 
     addToCart(produto);
 
-    const storedCart =
-      localStorage.getItem(
-        'cart_cliente_42',
-      );
+    const storedCart = localStorage.getItem("cart_cliente_42");
 
-    expect(
-      storedCart,
-    ).not.toBeNull();
+    expect(storedCart).not.toBeNull();
 
-    expect(
-      JSON.parse(
-        storedCart ?? '[]',
-      ),
-    ).toHaveLength(1);
+    expect(JSON.parse(storedCart ?? "[]")).toHaveLength(1);
   });
 });

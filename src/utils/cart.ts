@@ -1,4 +1,4 @@
-import { decodeToken } from './decodeToken';
+import { decodeToken } from "./decodeToken";
 
 export interface CartItem {
   id: number;
@@ -9,12 +9,12 @@ export interface CartItem {
   imageUrl?: string;
 }
 
-const LEGACY_CART_KEY = 'cart';
-const INVALID_CART_KEY = 'cart_cliente_undefined';
-const GUEST_CART_KEY = 'cart_visitante';
+const LEGACY_CART_KEY = "cart";
+const INVALID_CART_KEY = "cart_cliente_undefined";
+const GUEST_CART_KEY = "cart_visitante";
 
 function getCartKey(): string {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
 
   if (!token) {
     return GUEST_CART_KEY;
@@ -29,93 +29,78 @@ function getCartKey(): string {
   return `cart_cliente_${decodedToken.sub}`;
 }
 
-function parseCart(
-  storedCart: string | null,
-): CartItem[] {
+function isValidCartItem(item: unknown): item is CartItem {
+  if (typeof item !== "object" || item === null) {
+    return false;
+  }
+
+  const cartItem = item as Partial<CartItem>;
+
+  const hasValidImageUrl =
+    cartItem.imageUrl === undefined || typeof cartItem.imageUrl === "string";
+
+  return (
+    Number.isInteger(cartItem.id) &&
+    Number(cartItem.id) > 0 &&
+    typeof cartItem.name === "string" &&
+    cartItem.name.trim().length > 0 &&
+    typeof cartItem.price === "number" &&
+    Number.isFinite(cartItem.price) &&
+    cartItem.price >= 0 &&
+    Number.isInteger(cartItem.quantity) &&
+    Number(cartItem.quantity) >= 1 &&
+    Number.isInteger(cartItem.stockQuantity) &&
+    Number(cartItem.stockQuantity) >= 1 &&
+    Number(cartItem.quantity) <= Number(cartItem.stockQuantity) &&
+    hasValidImageUrl
+  );
+}
+
+function parseCart(storedCart: string | null): CartItem[] {
   if (!storedCart) {
     return [];
   }
 
   try {
-    const parsedCart: unknown =
-      JSON.parse(storedCart);
+    const parsedCart: unknown = JSON.parse(storedCart);
 
     if (!Array.isArray(parsedCart)) {
       return [];
     }
 
-    return parsedCart.filter(
-      (item): item is CartItem => {
-        if (
-          typeof item !== 'object' ||
-          item === null
-        ) {
-          return false;
-        }
-
-        const cartItem =
-          item as Partial<CartItem>;
-
-        return (
-          typeof cartItem.id === 'number' &&
-          typeof cartItem.name === 'string' &&
-          typeof cartItem.price === 'number' &&
-          typeof cartItem.quantity === 'number' &&
-          typeof cartItem.stockQuantity ===
-            'number'
-        );
-      },
-    );
+    return parsedCart.filter(isValidCartItem);
   } catch {
     return [];
   }
 }
 
-function migrateCart(
-  sourceKey: string,
-  destinationKey: string,
-): boolean {
-  if (
-    sourceKey === destinationKey ||
-    localStorage.getItem(destinationKey)
-  ) {
+function migrateCart(sourceKey: string, destinationKey: string): boolean {
+  if (sourceKey === destinationKey || localStorage.getItem(destinationKey)) {
     return false;
   }
 
-  const sourceCart =
-    localStorage.getItem(sourceKey);
+  const sourceCart = localStorage.getItem(sourceKey);
 
   if (!sourceCart) {
     return false;
   }
 
-  localStorage.setItem(
-    destinationKey,
-    sourceCart,
-  );
+  localStorage.setItem(destinationKey, sourceCart);
 
   localStorage.removeItem(sourceKey);
 
   return true;
 }
 
-function migratePreviousCarts(
-  destinationKey: string,
-): void {
+function migratePreviousCarts(destinationKey: string): void {
   if (destinationKey === GUEST_CART_KEY) {
     return;
   }
 
-  const migratedInvalidCart = migrateCart(
-    INVALID_CART_KEY,
-    destinationKey,
-  );
+  const migratedInvalidCart = migrateCart(INVALID_CART_KEY, destinationKey);
 
   if (!migratedInvalidCart) {
-    migrateCart(
-      LEGACY_CART_KEY,
-      destinationKey,
-    );
+    migrateCart(LEGACY_CART_KEY, destinationKey);
   }
 }
 
@@ -124,53 +109,33 @@ export function getCart(): CartItem[] {
 
   migratePreviousCarts(cartKey);
 
-  return parseCart(
-    localStorage.getItem(cartKey),
-  );
+  return parseCart(localStorage.getItem(cartKey));
 }
 
-export function saveCart(
-  items: CartItem[],
-): void {
+export function saveCart(items: CartItem[]): void {
   const cartKey = getCartKey();
 
-  localStorage.setItem(
-    cartKey,
-    JSON.stringify(items),
-  );
+  localStorage.setItem(cartKey, JSON.stringify(items));
 }
 
-export function addToCart(
-  product: Omit<CartItem, 'quantity'>,
-): CartItem[] {
+export function addToCart(product: Omit<CartItem, "quantity">): CartItem[] {
   const cart = getCart();
 
-  const existingItem = cart.find(
-    (item) => item.id === product.id,
-  );
+  const existingItem = cart.find((item) => item.id === product.id);
 
   if (existingItem) {
-    if (
-      existingItem.quantity >=
-      product.stockQuantity
-    ) {
-      throw new Error(
-        'Quantidade máxima em estoque atingida.',
-      );
+    if (existingItem.quantity >= product.stockQuantity) {
+      throw new Error("Quantidade máxima em estoque atingida.");
     }
 
     existingItem.quantity += 1;
-    existingItem.stockQuantity =
-      product.stockQuantity;
+    existingItem.stockQuantity = product.stockQuantity;
     existingItem.price = product.price;
     existingItem.name = product.name;
-    existingItem.imageUrl =
-      product.imageUrl;
+    existingItem.imageUrl = product.imageUrl;
   } else {
     if (product.stockQuantity <= 0) {
-      throw new Error(
-        'Produto sem estoque.',
-      );
+      throw new Error("Produto sem estoque.");
     }
 
     cart.push({
@@ -184,12 +149,8 @@ export function addToCart(
   return cart;
 }
 
-export function removeFromCart(
-  productId: number,
-): CartItem[] {
-  const cart = getCart().filter(
-    (item) => item.id !== productId,
-  );
+export function removeFromCart(productId: number): CartItem[] {
+  const cart = getCart().filter((item) => item.id !== productId);
 
   saveCart(cart);
 
@@ -197,24 +158,16 @@ export function removeFromCart(
 }
 
 export function clearCart(): void {
-  localStorage.removeItem(
-    getCartKey(),
-  );
+  localStorage.removeItem(getCartKey());
 }
 
 export function getCartTotal(): number {
   return getCart().reduce(
-    (total, item) =>
-      total +
-      item.price * item.quantity,
+    (total, item) => total + item.price * item.quantity,
     0,
   );
 }
 
 export function getCartItemsCount(): number {
-  return getCart().reduce(
-    (total, item) =>
-      total + item.quantity,
-    0,
-  );
+  return getCart().reduce((total, item) => total + item.quantity, 0);
 }
