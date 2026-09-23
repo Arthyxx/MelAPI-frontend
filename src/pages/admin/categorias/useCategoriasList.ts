@@ -1,244 +1,162 @@
-import type { AxiosError } from 'axios';
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import type { AxiosError } from "axios";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import {
-  fetchCategoriasApi,
-} from './categoria.api';
+import { fetchCategoriasApi } from "./categoria.api";
 
-import {
-  initialPagination,
-} from './categoria.constants';
+import { initialPagination } from "./categoria.constants";
 
 import type {
   ActiveFilter,
   ApiErrorResponse,
   Categoria,
-} from './categoria.types';
+} from "./categoria.types";
 
-import {
-  getErrorMessage,
-} from './categoria.utils';
+import { getErrorMessage } from "./categoria.utils";
 
 export function useCategoriasList() {
-  const [categorias, setCategorias] =
-    useState<Categoria[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
 
-  const [pagination, setPagination] =
-    useState(initialPagination);
+  const [pagination, setPagination] = useState(initialPagination);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [error, setError] =
-    useState('');
+  const [error, setError] = useState("");
 
-  const [search, setSearch] =
-    useState('');
+  const [search, setSearch] = useState("");
 
-  const [
-    activeFilter,
-    setActiveFilter,
-  ] = useState<ActiveFilter>('');
+  const [activeFilter, setActiveFilter] = useState<ActiveFilter>("");
 
-  const [page, setPage] =
-    useState(1);
+  const [page, setPage] = useState(1);
 
-  const [limit, setLimit] =
-    useState(10);
+  const [limit, setLimit] = useState(10);
 
-  const categoriasAtivasNaPagina =
-    useMemo(() => {
-      return categorias.filter(
-        (categoria) =>
-          categoria.active,
-      ).length;
-    }, [categorias]);
+  const latestRequestIdRef = useRef(0);
 
-  const categoriasInativasNaPagina =
-    useMemo(() => {
-      return categorias.filter(
-        (categoria) =>
-          !categoria.active,
-      ).length;
-    }, [categorias]);
+  const categoriasAtivasNaPagina = useMemo(() => {
+    return categorias.filter((categoria) => categoria.active).length;
+  }, [categorias]);
 
-  const hasFilters = Boolean(
-    search ||
-      activeFilter,
-  );
+  const categoriasInativasNaPagina = useMemo(() => {
+    return categorias.filter((categoria) => !categoria.active).length;
+  }, [categorias]);
 
-  const fetchCategorias =
-    useCallback(async () => {
-      try {
-        setError('');
-        setLoading(true);
+  const hasFilters = Boolean(search || activeFilter);
 
-        const data =
-          await fetchCategoriasApi({
-            page,
-            limit,
-            search:
-              search.trim() ||
-              undefined,
-            active:
-              activeFilter ||
-              undefined,
-          });
+  const fetchCategorias = useCallback(async () => {
+    const requestId = ++latestRequestIdRef.current;
 
-        setCategorias(
-          Array.isArray(data.content)
-            ? data.content
-            : [],
-        );
+    try {
+      setError("");
+      setLoading(true);
 
-        setPagination(
-          data.pagination ||
-            initialPagination,
-        );
-      } catch (requestError) {
-        const axiosError =
-          requestError as AxiosError<ApiErrorResponse>;
+      const data = await fetchCategoriasApi({
+        page,
+        limit,
+        search: search.trim() || undefined,
+        active: activeFilter || undefined,
+      });
 
-        console.error(
-          'Erro ao carregar categorias:',
-          {
-            statusCode:
-              axiosError.response
-                ?.status,
-            data:
-              axiosError.response
-                ?.data,
-            message:
-              axiosError.message,
-          },
-        );
+      if (requestId !== latestRequestIdRef.current) {
+        return;
+      }
 
-        setCategorias([]);
+      setCategorias(Array.isArray(data.content) ? data.content : []);
 
-        setPagination(
-          initialPagination,
-        );
+      setPagination(data.pagination || initialPagination);
+    } catch (requestError) {
+      if (requestId !== latestRequestIdRef.current) {
+        return;
+      }
 
-        setError(
-          getErrorMessage(
-            axiosError,
-            'Erro ao carregar categorias.',
-          ),
-        );
-      } finally {
+      const axiosError = requestError as AxiosError<ApiErrorResponse>;
+
+      console.error("Erro ao carregar categorias:", {
+        statusCode: axiosError.response?.status,
+        data: axiosError.response?.data,
+        message: axiosError.message,
+      });
+
+      setCategorias([]);
+
+      setPagination(initialPagination);
+
+      setError(getErrorMessage(axiosError, "Erro ao carregar categorias."));
+    } finally {
+      if (requestId === latestRequestIdRef.current) {
         setLoading(false);
       }
-    }, [
-      activeFilter,
-      limit,
-      page,
-      search,
-    ]);
+    }
+  }, [activeFilter, limit, page, search]);
 
   useEffect(() => {
-    const timeoutId =
-      window.setTimeout(
-        () => {
-          void fetchCategorias();
-        },
-        search ? 350 : 0,
-      );
+    const timeoutId = window.setTimeout(
+      () => {
+        void fetchCategorias();
+      },
+      search ? 350 : 0,
+    );
 
     return () => {
-      window.clearTimeout(
-        timeoutId,
-      );
+      window.clearTimeout(timeoutId);
+      latestRequestIdRef.current += 1;
     };
-  }, [
-    fetchCategorias,
-    search,
-  ]);
+  }, [fetchCategorias, search]);
 
-  const handleSearchChange = (
-    value: string,
-  ) => {
+  const handleSearchChange = (value: string) => {
     setSearch(value);
     setPage(1);
   };
 
-  const handleActiveFilterChange = (
-    value: ActiveFilter,
-  ) => {
+  const handleActiveFilterChange = (value: ActiveFilter) => {
     setActiveFilter(value);
     setPage(1);
   };
 
   const handleClearFilters = () => {
-    setSearch('');
-    setActiveFilter('');
+    setSearch("");
+    setActiveFilter("");
     setPage(1);
   };
 
-  const handleLimitChange = (
-    value: number,
-  ) => {
+  const handleLimitChange = (value: number) => {
     setLimit(value);
     setPage(1);
   };
 
   const handlePreviousPage = () => {
-    if (
-      pagination.hasPreviousPage
-    ) {
-      setPage(
-        (currentPage) =>
-          currentPage - 1,
-      );
+    if (pagination.hasPreviousPage) {
+      setPage((currentPage) => currentPage - 1);
     }
   };
 
   const handleNextPage = () => {
-    if (
-      pagination.hasNextPage
-    ) {
-      setPage(
-        (currentPage) =>
-          currentPage + 1,
-      );
+    if (pagination.hasNextPage) {
+      setPage((currentPage) => currentPage + 1);
     }
   };
 
-  const refreshAfterCreate =
-    async () => {
-      if (page !== 1) {
-        setPage(1);
-        return;
-      }
+  const refreshAfterCreate = async () => {
+    if (page !== 1) {
+      setPage(1);
+      return;
+    }
 
-      await fetchCategorias();
-    };
+    await fetchCategorias();
+  };
 
-  const refreshAfterUpdate =
-    async () => {
-      await fetchCategorias();
-    };
+  const refreshAfterUpdate = async () => {
+    await fetchCategorias();
+  };
 
-  const refreshAfterDelete =
-    async () => {
-      if (
-        categorias.length === 1 &&
-        page > 1
-      ) {
-        setPage(
-          (currentPage) =>
-            currentPage - 1,
-        );
+  const refreshAfterDelete = async () => {
+    if (categorias.length === 1 && page > 1) {
+      setPage((currentPage) => currentPage - 1);
 
-        return;
-      }
+      return;
+    }
 
-      await fetchCategorias();
-    };
+    await fetchCategorias();
+  };
 
   return {
     categorias,
