@@ -1,16 +1,8 @@
-import type {
-  ChangeEvent,
-  FormEvent,
-} from 'react';
+import type { ChangeEvent, FormEvent } from "react";
 
-import {
-  ProdutoShippingFields,
-} from './ProdutoShippingFields';
+import { ProdutoShippingFields } from "./ProdutoShippingFields";
 
-import type {
-  Categoria,
-  ProdutoFormData,
-} from './produto.types';
+import type { Categoria, ProdutoFormData } from "./produto.types";
 
 interface ProdutoFormProps {
   editingId: number | null;
@@ -18,16 +10,12 @@ interface ProdutoFormProps {
   categorias: Categoria[];
   selectedImage: File | null;
   saving: boolean;
-  onSubmit: (
-    event: FormEvent<HTMLFormElement>,
-  ) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onFieldChange: (
     field: keyof ProdutoFormData,
     value: string | boolean,
   ) => void;
-  onImageChange: (
-    event: ChangeEvent<HTMLInputElement>,
-  ) => void;
+  onImageChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onRemoveImage: () => void;
   onCancelEdit: () => void;
 }
@@ -48,21 +36,15 @@ export function ProdutoForm({
     <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
       <div className="mb-5 flex flex-col gap-1">
         <h3 className="text-xl font-black text-gray-950">
-          {editingId !== null
-            ? 'Editar produto'
-            : 'Novo produto'}
+          {editingId !== null ? "Editar produto" : "Novo produto"}
         </h3>
 
         <p className="text-sm text-gray-500">
-          Preencha as informações que
-          serão exibidas para os clientes.
+          Preencha as informações que serão exibidas para os clientes.
         </p>
       </div>
 
-      <form
-        onSubmit={onSubmit}
-        className="grid gap-4 lg:grid-cols-4"
-      >
+      <form onSubmit={onSubmit} className="grid gap-4 lg:grid-cols-4">
         <div className="lg:col-span-2">
           <label
             htmlFor="produto-name"
@@ -76,12 +58,7 @@ export function ProdutoForm({
             type="text"
             placeholder="Ex: Mel Silvestre"
             value={formData.name}
-            onChange={(event) =>
-              onFieldChange(
-                'name',
-                event.target.value,
-              )
-            }
+            onChange={(event) => onFieldChange("name", event.target.value)}
             className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
             required
           />
@@ -99,15 +76,10 @@ export function ProdutoForm({
             id="produto-price"
             type="number"
             step="0.01"
-            min="0"
+            min="0.01"
             placeholder="89.90"
             value={formData.price}
-            onChange={(event) =>
-              onFieldChange(
-                'price',
-                event.target.value,
-              )
-            }
+            onChange={(event) => onFieldChange("price", event.target.value)}
             className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
             required
           />
@@ -126,14 +98,9 @@ export function ProdutoForm({
             type="number"
             min="0"
             placeholder="10"
-            value={
-              formData.stockQuantity
-            }
+            value={formData.stockQuantity}
             onChange={(event) =>
-              onFieldChange(
-                'stockQuantity',
-                event.target.value,
-              )
+              onFieldChange("stockQuantity", event.target.value)
             }
             className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
             required
@@ -150,32 +117,20 @@ export function ProdutoForm({
 
           <select
             id="produto-category"
-            value={
-              formData.categoryId
-            }
+            value={formData.categoryId}
             onChange={(event) =>
-              onFieldChange(
-                'categoryId',
-                event.target.value,
-              )
+              onFieldChange("categoryId", event.target.value)
             }
             className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
             required
           >
-            <option value="">
-              Selecione a categoria
-            </option>
+            <option value="">Selecione a categoria</option>
 
-            {categorias.map(
-              (categoria) => (
-                <option
-                  key={categoria.id}
-                  value={categoria.id}
-                >
-                  {categoria.name}
-                </option>
-              ),
-            )}
+            {categorias.map((categoria) => (
+              <option key={categoria.id} value={categoria.id}>
+                {categoria.name}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -196,20 +151,16 @@ export function ProdutoForm({
           />
 
           <p className="mt-2 text-xs font-medium text-gray-500">
-            JPG, PNG ou WEBP. Máximo
-            de 5 MB.
+            JPG, PNG ou WEBP. Máximo de 5 MB.
           </p>
         </div>
 
-        {(formData.imageUrl ||
-          selectedImage) && (
+        {(formData.imageUrl || selectedImage) && (
           <div className="lg:col-span-4">
             <div className="flex flex-col gap-4 rounded-2xl border border-amber-100 bg-amber-50/60 p-4 sm:flex-row sm:items-center">
               {formData.imageUrl ? (
                 <img
-                  src={
-                    formData.imageUrl
-                  }
+                  src={formData.imageUrl}
                   alt="Imagem atual do produto"
                   className="h-24 w-24 rounded-2xl border border-amber-100 bg-white object-cover"
                 />
@@ -223,48 +174,35 @@ export function ProdutoForm({
                 {selectedImage ? (
                   <>
                     <p className="font-black text-gray-900">
-                      Nova imagem
-                      selecionada
+                      Nova imagem selecionada
                     </p>
 
                     <p className="mt-1 break-all text-sm font-medium text-gray-600">
-                      {
-                        selectedImage.name
-                      }
+                      {selectedImage.name}
                     </p>
 
                     {formData.imageUrl && (
                       <p className="mt-2 text-xs font-semibold text-amber-700">
-                        Ela substituirá
-                        a imagem atual
-                        quando o produto
-                        for salvo.
+                        Ela substituirá a imagem atual quando o produto for
+                        salvo.
                       </p>
                     )}
                   </>
                 ) : (
                   <>
-                    <p className="font-black text-gray-900">
-                      Imagem atual
-                    </p>
+                    <p className="font-black text-gray-900">Imagem atual</p>
 
                     <p className="mt-1 text-sm text-gray-600">
-                      Esta imagem será
-                      mantida se você
-                      não selecionar
-                      outra.
+                      Esta imagem será mantida se você não selecionar outra.
                     </p>
                   </>
                 )}
               </div>
 
-              {(formData.imageUrl ||
-                selectedImage) && (
+              {(formData.imageUrl || selectedImage) && (
                 <button
                   type="button"
-                  onClick={
-                    onRemoveImage
-                  }
+                  onClick={onRemoveImage}
                   disabled={saving}
                   className="rounded-xl border border-red-100 bg-white px-4 py-2 text-sm font-black text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
@@ -277,9 +215,7 @@ export function ProdutoForm({
 
         <ProdutoShippingFields
           formData={formData}
-          onFieldChange={
-            onFieldChange
-          }
+          onFieldChange={onFieldChange}
         />
 
         <div className="lg:col-span-4">
@@ -294,14 +230,9 @@ export function ProdutoForm({
             id="produto-description"
             rows={4}
             placeholder="Descreva o produto..."
-            value={
-              formData.description
-            }
+            value={formData.description}
             onChange={(event) =>
-              onFieldChange(
-                'description',
-                event.target.value,
-              )
+              onFieldChange("description", event.target.value)
             }
             className="w-full resize-none rounded-2xl border border-gray-200 bg-white px-4 py-3 font-medium outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
           />
@@ -311,15 +242,8 @@ export function ProdutoForm({
           <input
             id="produto-active"
             type="checkbox"
-            checked={
-              formData.active
-            }
-            onChange={(event) =>
-              onFieldChange(
-                'active',
-                event.target.checked,
-              )
-            }
+            checked={formData.active}
+            onChange={(event) => onFieldChange("active", event.target.checked)}
             className="h-4 w-4 accent-amber-700"
           />
 
@@ -339,19 +263,17 @@ export function ProdutoForm({
           >
             {saving
               ? selectedImage
-                ? 'Enviando e salvando...'
-                : 'Salvando...'
+                ? "Enviando e salvando..."
+                : "Salvando..."
               : editingId !== null
-                ? 'Salvar alterações'
-                : 'Criar produto'}
+                ? "Salvar alterações"
+                : "Criar produto"}
           </button>
 
           {editingId !== null && (
             <button
               type="button"
-              onClick={
-                onCancelEdit
-              }
+              onClick={onCancelEdit}
               disabled={saving}
               className="rounded-2xl border border-gray-200 bg-white px-6 py-3 font-black text-gray-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-50 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
             >
