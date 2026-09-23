@@ -1,31 +1,18 @@
-import type {
-  AxiosError,
-} from 'axios';
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
-import {
-  useNavigate,
-} from 'react-router-dom';
+import type { AxiosError } from "axios";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
   canReviewProduto,
   findAvaliacoesByProdutoId,
-} from '../../services/avaliacaoProdutoService';
-import {
-  findProdutoById,
-} from '../../services/produtoService';
+} from "../../services/avaliacaoProdutoService";
+import { findProdutoById } from "../../services/produtoService";
 
 import type {
   AvaliacaoProduto,
   CanReviewProduto,
-} from '../../types/avaliacaoProduto';
-import type {
-  Produto,
-} from '../../types/produto';
+} from "../../types/avaliacaoProduto";
+import type { Produto } from "../../types/produto";
 
 interface ApiErrorResponse {
   message?: string | string[];
@@ -38,6 +25,32 @@ interface UseProdutoDetalheDataOptions {
   clienteId?: number;
 }
 
+interface ProdutoRequestState {
+  id: string;
+  produto: Produto | null;
+  error: string;
+}
+
+interface AvaliacoesRequestState {
+  id: string;
+  avaliacoes: AvaliacaoProduto[];
+}
+
+interface CanReviewRequestState {
+  key: string;
+  data: CanReviewProduto;
+}
+
+function logRequestError(message: string, requestError: unknown) {
+  const axiosError = requestError as AxiosError<ApiErrorResponse>;
+
+  console.error(message, {
+    statusCode: axiosError.response?.status,
+    data: axiosError.response?.data,
+    message: axiosError.message,
+  });
+}
+
 export function useProdutoDetalheData({
   id,
   isAuthenticated,
@@ -45,236 +58,262 @@ export function useProdutoDetalheData({
 }: UseProdutoDetalheDataOptions) {
   const navigate = useNavigate();
 
-  const [produto, setProduto] =
-    useState<Produto | null>(null);
+  const [produtoState, setProdutoState] = useState<ProdutoRequestState | null>(
+    null,
+  );
 
-  const [
-    avaliacoes,
-    setAvaliacoes,
-  ] = useState<
-    AvaliacaoProduto[]
-  >([]);
+  const [avaliacoesState, setAvaliacoesState] =
+    useState<AvaliacoesRequestState | null>(null);
 
-  const [
-    canReview,
-    setCanReview,
-  ] =
-    useState<CanReviewProduto | null>(
-      null,
-    );
+  const [canReviewState, setCanReviewState] =
+    useState<CanReviewRequestState | null>(null);
 
-  const [loading, setLoading] =
-    useState(true);
+  const latestProdutoRequestIdRef = useRef(0);
 
-  const [
-    loadingAvaliacoes,
-    setLoadingAvaliacoes,
-  ] = useState(true);
+  const latestAvaliacoesRequestIdRef = useRef(0);
 
-  const [
-    loadingCanReview,
-    setLoadingCanReview,
-  ] = useState(false);
+  const latestCanReviewRequestIdRef = useRef(0);
 
-  const [error, setError] =
-    useState('');
+  const canReviewKey =
+    id && isAuthenticated ? `${id}:${clienteId ?? "unknown"}` : null;
+
+  const produto = id && produtoState?.id === id ? produtoState.produto : null;
+
+  const error = id && produtoState?.id === id ? produtoState.error : "";
+
+  const loading = !id || produtoState?.id !== id;
+
+  const avaliacoes =
+    id && avaliacoesState?.id === id ? avaliacoesState.avaliacoes : [];
+
+  const loadingAvaliacoes = Boolean(id && avaliacoesState?.id !== id);
+
+  const canReview =
+    canReviewKey && canReviewState?.key === canReviewKey
+      ? canReviewState.data
+      : null;
+
+  const loadingCanReview = Boolean(
+    canReviewKey && canReviewState?.key !== canReviewKey,
+  );
 
   const minhaAvaliacao =
-    useMemo(() => {
-      if (
-        clienteId === undefined
-      ) {
-        return null;
-      }
+    clienteId === undefined
+      ? null
+      : (avaliacoes.find(
+          (avaliacao) => Number(avaliacao.clienteId) === Number(clienteId),
+        ) ?? null);
 
-      return (
-        avaliacoes.find(
-          (avaliacao) =>
-            Number(
-              avaliacao.clienteId,
-            ) ===
-            Number(clienteId),
-        ) ?? null
-      );
-    }, [
-      avaliacoes,
-      clienteId,
-    ]);
+  const reloadCanReview = useCallback(async () => {
+    if (!id || !isAuthenticated || !canReviewKey) {
+      return;
+    }
 
-  const reloadCanReview =
-    useCallback(async () => {
-      if (
-        !id ||
-        !isAuthenticated
-      ) {
-        setCanReview(null);
-        setLoadingCanReview(
-          false,
-        );
+    const requestId = ++latestCanReviewRequestIdRef.current;
 
+    try {
+      const data = await canReviewProduto(id);
+
+      if (requestId !== latestCanReviewRequestIdRef.current) {
         return;
       }
 
-      try {
-        setLoadingCanReview(true);
+      setCanReviewState({
+        key: canReviewKey,
+        data,
+      });
+    } catch (requestError) {
+      if (requestId !== latestCanReviewRequestIdRef.current) {
+        return;
+      }
 
-        const data =
-          await canReviewProduto(id);
+      logRequestError(
+        "Erro ao verificar permissão de avaliação:",
+        requestError,
+      );
 
-        setCanReview(data);
-      } catch (requestError) {
-        const axiosError =
-          requestError as AxiosError<ApiErrorResponse>;
-
-        console.error(
-          'Erro ao verificar permissão de avaliação:',
-          {
-            statusCode:
-              axiosError.response
-                ?.status,
-            data:
-              axiosError.response
-                ?.data,
-            message:
-              axiosError.message,
-          },
-        );
-
-        setCanReview({
+      setCanReviewState({
+        key: canReviewKey,
+        data: {
           canReview: false,
           message:
-            'Não foi possível verificar se você pode avaliar este produto agora.',
-        });
-      } finally {
-        setLoadingCanReview(
-          false,
-        );
-      }
-    }, [
-      id,
-      isAuthenticated,
-    ]);
+            "Não foi possível verificar se você pode avaliar este produto agora.",
+        },
+      });
+    }
+  }, [id, isAuthenticated, canReviewKey]);
 
-  const reloadAvaliacoes =
-    useCallback(async () => {
-      if (!id) {
+  const reloadAvaliacoes = useCallback(async () => {
+    if (!id) {
+      return;
+    }
+
+    const requestId = ++latestAvaliacoesRequestIdRef.current;
+
+    try {
+      const data = await findAvaliacoesByProdutoId(id);
+
+      if (requestId !== latestAvaliacoesRequestIdRef.current) {
         return;
       }
 
-      try {
-        setLoadingAvaliacoes(
-          true,
-        );
-
-        const data =
-          await findAvaliacoesByProdutoId(
-            id,
-          );
-
-        setAvaliacoes(data);
-      } catch (requestError) {
-        const axiosError =
-          requestError as AxiosError<ApiErrorResponse>;
-
-        console.error(
-          'Erro ao recarregar avaliações:',
-          {
-            statusCode:
-              axiosError.response
-                ?.status,
-            data:
-              axiosError.response
-                ?.data,
-            message:
-              axiosError.message,
-          },
-        );
-      } finally {
-        setLoadingAvaliacoes(
-          false,
-        );
+      setAvaliacoesState({
+        id,
+        avaliacoes: data,
+      });
+    } catch (requestError) {
+      if (requestId !== latestAvaliacoesRequestIdRef.current) {
+        return;
       }
 
-      await reloadCanReview();
-    }, [
-      id,
-      reloadCanReview,
-    ]);
+      logRequestError("Erro ao recarregar avaliações:", requestError);
+    }
+
+    if (requestId !== latestAvaliacoesRequestIdRef.current) {
+      return;
+    }
+
+    await reloadCanReview();
+  }, [id, reloadCanReview]);
 
   useEffect(() => {
-    const fetchProdutoDetalhe =
-      async () => {
-        if (!id) {
-          navigate('/produtos', {
-            replace: true,
-          });
+    if (!id) {
+      navigate("/produtos", {
+        replace: true,
+      });
 
+      return;
+    }
+
+    const requestId = ++latestProdutoRequestIdRef.current;
+
+    const fetchProduto = async () => {
+      try {
+        const produtoData = await findProdutoById(id);
+
+        if (requestId !== latestProdutoRequestIdRef.current) {
           return;
         }
 
-        try {
-          setError('');
-          setLoading(true);
-
-          setLoadingAvaliacoes(
-            true,
-          );
-
-          const produtoData =
-            await findProdutoById(
-              id,
-            );
-
-          setProduto(
-            produtoData,
-          );
-
-          const avaliacoesData =
-            await findAvaliacoesByProdutoId(
-              id,
-            );
-
-          setAvaliacoes(
-            avaliacoesData,
-          );
-
-          void reloadCanReview();
-        } catch (requestError) {
-          const axiosError =
-            requestError as AxiosError<ApiErrorResponse>;
-
-          console.error(
-            'Erro ao carregar detalhe do produto:',
-            {
-              statusCode:
-                axiosError.response
-                  ?.status,
-              data:
-                axiosError.response
-                  ?.data,
-              message:
-                axiosError.message,
-            },
-          );
-
-          setError(
-            'Não foi possível carregar os detalhes deste produto.',
-          );
-        } finally {
-          setLoading(false);
-
-          setLoadingAvaliacoes(
-            false,
-          );
+        setProdutoState({
+          id,
+          produto: produtoData,
+          error: "",
+        });
+      } catch (requestError) {
+        if (requestId !== latestProdutoRequestIdRef.current) {
+          return;
         }
-      };
 
-    void fetchProdutoDetalhe();
-  }, [
-    id,
-    navigate,
-    reloadCanReview,
-  ]);
+        logRequestError("Erro ao carregar detalhe do produto:", requestError);
+
+        setProdutoState({
+          id,
+          produto: null,
+          error: "Não foi possível carregar os detalhes deste produto.",
+        });
+      }
+    };
+
+    void fetchProduto();
+
+    return () => {
+      if (latestProdutoRequestIdRef.current === requestId) {
+        latestProdutoRequestIdRef.current += 1;
+      }
+    };
+  }, [id, navigate]);
+
+  useEffect(() => {
+    if (!id) {
+      return;
+    }
+
+    const requestId = ++latestAvaliacoesRequestIdRef.current;
+
+    const fetchAvaliacoes = async () => {
+      try {
+        const data = await findAvaliacoesByProdutoId(id);
+
+        if (requestId !== latestAvaliacoesRequestIdRef.current) {
+          return;
+        }
+
+        setAvaliacoesState({
+          id,
+          avaliacoes: data,
+        });
+      } catch (requestError) {
+        if (requestId !== latestAvaliacoesRequestIdRef.current) {
+          return;
+        }
+
+        logRequestError("Erro ao carregar avaliações:", requestError);
+
+        setAvaliacoesState({
+          id,
+          avaliacoes: [],
+        });
+      }
+    };
+
+    void fetchAvaliacoes();
+
+    return () => {
+      if (latestAvaliacoesRequestIdRef.current === requestId) {
+        latestAvaliacoesRequestIdRef.current += 1;
+      }
+    };
+  }, [id]);
+
+  useEffect(() => {
+    if (!id || !isAuthenticated || !canReviewKey) {
+      return;
+    }
+
+    const requestId = ++latestCanReviewRequestIdRef.current;
+
+    const fetchCanReview = async () => {
+      try {
+        const data = await canReviewProduto(id);
+
+        if (requestId !== latestCanReviewRequestIdRef.current) {
+          return;
+        }
+
+        setCanReviewState({
+          key: canReviewKey,
+          data,
+        });
+      } catch (requestError) {
+        if (requestId !== latestCanReviewRequestIdRef.current) {
+          return;
+        }
+
+        logRequestError(
+          "Erro ao verificar permissão de avaliação:",
+          requestError,
+        );
+
+        setCanReviewState({
+          key: canReviewKey,
+          data: {
+            canReview: false,
+            message:
+              "Não foi possível verificar se você pode avaliar este produto agora.",
+          },
+        });
+      }
+    };
+
+    void fetchCanReview();
+
+    return () => {
+      if (latestCanReviewRequestIdRef.current === requestId) {
+        latestCanReviewRequestIdRef.current += 1;
+      }
+    };
+  }, [id, isAuthenticated, canReviewKey]);
 
   return {
     produto,
