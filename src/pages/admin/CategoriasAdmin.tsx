@@ -1,58 +1,38 @@
-import { ConfirmModal } from '../../components/ui/ConfirmModal';
+import { ConfirmModal } from "../../components/ui/ConfirmModal";
 
-import { CategoriaForm } from './categorias/CategoriaForm';
-import { CategoriasFilters } from './categorias/CategoriasFilters';
-import { CategoriasPagination } from './categorias/CategoriasPagination';
-import { CategoriasSummary } from './categorias/CategoriasSummary';
-import { CategoriasTable } from './categorias/CategoriasTable';
-import { useCategoriaDelete } from './categorias/useCategoriaDelete';
-import { useCategoriaForm } from './categorias/useCategoriaForm';
-import { useCategoriasList } from './categorias/useCategoriasList';
+import { CategoriaForm } from "./categorias/CategoriaForm";
+import { CategoriasFilters } from "./categorias/CategoriasFilters";
+import { CategoriasPagination } from "./categorias/CategoriasPagination";
+import { CategoriasSummary } from "./categorias/CategoriasSummary";
+import { CategoriasTable } from "./categorias/CategoriasTable";
+import { useCategoriaDelete } from "./categorias/useCategoriaDelete";
+import { useCategoriaForm } from "./categorias/useCategoriaForm";
+import { useCategoriasList } from "./categorias/useCategoriasList";
 
 export function CategoriasAdmin() {
-  const categoriasList =
-    useCategoriasList();
+  const categoriasList = useCategoriasList();
 
-  const categoriaForm =
-    useCategoriaForm({
-      onCreated:
-        categoriasList.refreshAfterCreate,
-      onUpdated:
-        categoriasList.refreshAfterUpdate,
-    });
+  const categoriaForm = useCategoriaForm({
+    onCreated: categoriasList.refreshAfterCreate,
+    onUpdated: categoriasList.refreshAfterUpdate,
+  });
 
-  const categoriaDelete =
-    useCategoriaDelete({
-      categorias:
-        categoriasList.categorias,
-      onDeleted:
-        categoriasList.refreshAfterDelete,
-    });
+  const categoriaDelete = useCategoriaDelete({
+    categorias: categoriasList.categorias,
+    onDeleted: categoriasList.refreshAfterDelete,
+  });
 
   const error =
-    categoriaForm.error ||
-    categoriaDelete.error ||
-    categoriasList.error;
+    categoriaForm.error || categoriaDelete.error || categoriasList.error;
 
-  const success =
-    categoriaForm.success ||
-    categoriaDelete.success;
+  const success = categoriaForm.success || categoriaDelete.success;
 
   return (
     <div className="space-y-6 bg-white text-gray-900">
       <CategoriasSummary
-        totalItems={
-          categoriasList.pagination
-            .totalItems
-        }
-        categoriasAtivasNaPagina={
-          categoriasList
-            .categoriasAtivasNaPagina
-        }
-        categoriasInativasNaPagina={
-          categoriasList
-            .categoriasInativasNaPagina
-        }
+        totalItems={categoriasList.pagination.totalItems}
+        categoriasAtivasNaPagina={categoriasList.categoriasAtivasNaPagina}
+        categoriasInativasNaPagina={categoriasList.categoriasInativasNaPagina}
       />
 
       {error && (
@@ -74,118 +54,54 @@ export function CategoriasAdmin() {
       )}
 
       <CategoriaForm
-        editingId={
-          categoriaForm.editingId
-        }
-        formData={
-          categoriaForm.formData
-        }
-        saving={
-          categoriaForm.saving
-        }
-        onSubmit={
-          categoriaForm.handleSubmit
-        }
-        onFieldChange={
-          categoriaForm.handleFieldChange
-        }
-        onCancelEdit={
-          categoriaForm.handleCancelEdit
-        }
+        editingId={categoriaForm.editingId}
+        formData={categoriaForm.formData}
+        saving={categoriaForm.saving}
+        onSubmit={categoriaForm.handleSubmit}
+        onFieldChange={categoriaForm.handleFieldChange}
+        onCancelEdit={categoriaForm.handleCancelEdit}
       />
 
       <CategoriasFilters
-        search={
-          categoriasList.search
-        }
-        activeFilter={
-          categoriasList.activeFilter
-        }
-        hasFilters={
-          categoriasList.hasFilters
-        }
-        onSearchChange={
-          categoriasList.handleSearchChange
-        }
-        onActiveFilterChange={
-          categoriasList
-            .handleActiveFilterChange
-        }
-        onClearFilters={
-          categoriasList.handleClearFilters
-        }
+        search={categoriasList.search}
+        activeFilter={categoriasList.activeFilter}
+        hasFilters={categoriasList.hasFilters}
+        onSearchChange={categoriasList.handleSearchChange}
+        onActiveFilterChange={categoriasList.handleActiveFilterChange}
+        onClearFilters={categoriasList.handleClearFilters}
       />
 
       <section className="rounded-3xl border border-gray-100 bg-white shadow-sm">
         <CategoriasPagination
-          pagination={
-            categoriasList.pagination
-          }
-          categoriasCount={
-            categoriasList.categorias.length
-          }
-          limit={
-            categoriasList.limit
-          }
-          loading={
-            categoriasList.loading
-          }
-          onLimitChange={
-            categoriasList.handleLimitChange
-          }
-          onPreviousPage={
-            categoriasList
-              .handlePreviousPage
-          }
-          onNextPage={
-            categoriasList
-              .handleNextPage
-          }
+          pagination={categoriasList.pagination}
+          categoriasCount={categoriasList.categorias.length}
+          limit={categoriasList.limit}
+          loading={categoriasList.loading}
+          onLimitChange={categoriasList.handleLimitChange}
+          onPreviousPage={categoriasList.handlePreviousPage}
+          onNextPage={categoriasList.handleNextPage}
         >
           <CategoriasTable
-            categorias={
-              categoriasList.categorias
-            }
-            loading={
-              categoriasList.loading
-            }
-            onEdit={
-              categoriaForm.handleEdit
-            }
-            onDelete={
-              categoriaDelete.handleDelete
-            }
+            categorias={categoriasList.categorias}
+            loading={categoriasList.loading}
+            onEdit={categoriaForm.handleEdit}
+            onDelete={categoriaDelete.handleDelete}
           />
         </CategoriasPagination>
       </section>
 
       <ConfirmModal
-        open={
-          categoriaDelete.deleteId !==
-          null
-        }
+        open={categoriaDelete.deleteId !== null}
         title="Excluir categoria?"
         description={`A categoria "${
-          categoriaDelete
-            .categoriaParaExcluir
-            ?.name ||
-          'selecionada'
+          categoriaDelete.categoriaParaExcluir?.name || "selecionada"
         }" será excluída definitivamente se não possuir produtos vinculados. Caso possua produtos, a categoria e os produtos ativos vinculados serão desativados para preservar o histórico.`}
-        confirmText={
-          categoriaDelete.deleting
-            ? 'Processando...'
-            : 'Confirmar'
-        }
+        confirmText="Confirmar"
         cancelText="Cancelar"
         variant="danger"
-        onConfirm={
-          categoriaDelete
-            .handleConfirmDelete
-        }
-        onCancel={
-          categoriaDelete
-            .handleCancelDelete
-        }
+        loading={categoriaDelete.deleting}
+        onConfirm={categoriaDelete.handleConfirmDelete}
+        onCancel={categoriaDelete.handleCancelDelete}
       />
     </div>
   );

@@ -1,21 +1,11 @@
-import type { AxiosError } from 'axios';
-import {
-  useMemo,
-  useState,
-} from 'react';
+import type { AxiosError } from "axios";
+import { useMemo, useRef, useState } from "react";
 
-import {
-  deleteCategoriaApi,
-} from './categoria.api';
+import { deleteCategoriaApi } from "./categoria.api";
 
-import type {
-  ApiErrorResponse,
-  Categoria,
-} from './categoria.types';
+import type { ApiErrorResponse, Categoria } from "./categoria.types";
 
-import {
-  getErrorMessage,
-} from './categoria.utils';
+import { getErrorMessage } from "./categoria.utils";
 
 interface UseCategoriaDeleteOptions {
   categorias: Categoria[];
@@ -26,100 +16,71 @@ export function useCategoriaDelete({
   categorias,
   onDeleted,
 }: UseCategoriaDeleteOptions) {
-  const [deleteId, setDeleteId] =
-    useState<number | null>(null);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
-  const [deleting, setDeleting] =
-    useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-  const [error, setError] =
-    useState('');
+  const [error, setError] = useState("");
 
-  const [success, setSuccess] =
-    useState('');
+  const [success, setSuccess] = useState("");
 
-  const categoriaParaExcluir =
-    useMemo(() => {
-      if (deleteId === null) {
-        return undefined;
-      }
+  const deletingRef = useRef(false);
 
-      return categorias.find(
-        (categoria) =>
-          categoria.id === deleteId,
-      );
-    }, [
-      categorias,
-      deleteId,
-    ]);
+  const categoriaParaExcluir = useMemo(() => {
+    if (deleteId === null) {
+      return undefined;
+    }
+
+    return categorias.find((categoria) => categoria.id === deleteId);
+  }, [categorias, deleteId]);
 
   const clearMessages = () => {
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
   };
 
-  const handleDelete = (
-    categoriaId: number,
-  ) => {
+  const handleDelete = (categoriaId: number) => {
     clearMessages();
 
-    setDeleteId(
-      categoriaId,
-    );
+    setDeleteId(categoriaId);
   };
 
-  const handleConfirmDelete =
-    async () => {
-      if (deleteId === null) {
-        return;
-      }
+  const handleConfirmDelete = async () => {
+    if (deleteId === null || deletingRef.current) {
+      return;
+    }
 
-      try {
-        clearMessages();
-        setDeleting(true);
+    deletingRef.current = true;
 
-        await deleteCategoriaApi(
-          deleteId,
-        );
+    try {
+      clearMessages();
+      setDeleting(true);
 
-        setDeleteId(null);
+      await deleteCategoriaApi(deleteId);
 
-        setSuccess(
-          'Categoria excluída ou desativada com sucesso.',
-        );
+      setDeleteId(null);
 
-        await onDeleted();
-      } catch (requestError) {
-        const axiosError =
-          requestError as AxiosError<ApiErrorResponse>;
+      setSuccess("Categoria excluída ou desativada com sucesso.");
 
-        console.error(
-          'Erro ao excluir categoria:',
-          {
-            statusCode:
-              axiosError.response
-                ?.status,
-            data:
-              axiosError.response
-                ?.data,
-            message:
-              axiosError.message,
-          },
-        );
+      await onDeleted();
+    } catch (requestError) {
+      const axiosError = requestError as AxiosError<ApiErrorResponse>;
 
-        setError(
-          getErrorMessage(
-            axiosError,
-            'Erro ao excluir categoria.',
-          ),
-        );
-      } finally {
-        setDeleting(false);
-      }
-    };
+      console.error("Erro ao excluir categoria:", {
+        statusCode: axiosError.response?.status,
+        data: axiosError.response?.data,
+        message: axiosError.message,
+      });
+
+      setError(getErrorMessage(axiosError, "Erro ao excluir categoria."));
+    } finally {
+      deletingRef.current = false;
+      setDeleting(false);
+    }
+  };
 
   const handleCancelDelete = () => {
-    if (deleting) {
+    if (deletingRef.current) {
       return;
     }
 
